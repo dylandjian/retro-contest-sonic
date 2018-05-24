@@ -17,8 +17,11 @@ from torchvision.utils import save_image
 
 
 def gaussian_distribution(y, mu, sigma):
-    y = y.unsqueeze(1).expand_as(mu)
-    result = MDN_CONST * torch.exp(-0.5 * ((y - mu) / sigma)**2) / sigma
+    ## Prepare the input to be transformed into a gaussian distribution
+    y = y.unsqueeze(1)
+    y = y.expand(-1, GAUSSIANS, LATENT_VEC)
+
+    result = MDN_CONST * torch.exp(-0.5 * ((y - mu) / sigma) ** 2) / sigma
     return result
 
 
@@ -26,7 +29,7 @@ def mdn_loss_function(out_pi, out_sigma, out_mu, y):
     result = gaussian_distribution(y, out_mu, out_sigma)
     result = result * out_pi
     result = torch.sum(result, dim=1)
-    result = - torch.log(EPSILON + result)
+    result =- torch.log(EPSILON + result)
     return torch.mean(result)
 
 
@@ -35,12 +38,18 @@ def train_epoch(lstm, optimizer, example):
 
     optimizer.zero_grad()
     lstm.hidden = lstm.init_hidden()
+
+    ## Concatenate action to encoded vector
     x = torch.cat((example['encoded'], example['actions'].view(-1, 1)), dim=1)
     x = x.view(-1, 1, x.size()[1])
     pi, sigma, mu = lstm(x)
 
-    ex = example['encoded'][-1].view(1, example['encoded'].size()[1])
-    target = torch.cat((example['encoded'][1:example['encoded'].size()[0]], ex,))
+    ## Shift all elements to the left and add a copy of the last
+    ## element at the end
+    last_ex = example['encoded'][-1].view(1, example['encoded'].size()[1])
+    target = torch.cat((example['encoded'][1:example['encoded'].size()[0]],\
+                         last_ex,))
+
     loss = mdn_loss_function(pi, sigma, mu, target)
     loss.backward()
     optimizer.step()
@@ -48,19 +57,42 @@ def train_epoch(lstm, optimizer, example):
     return float(loss)
 
 
+def sample(pi, mu, sigma):
+    pi = pi.cpu().numpy()[0]
+    mu = mu.cpu().numpy()[0]
+    sigma = sigma.cpu().numpy()[0]
+
+    ## Get the correct index depending on the probabilities
+    ## of each Gaussian distribution 
+    z = np.random.gumbel(loc=0, scale=1, size=pi.shape)
+    k = (np.log(pi) + z)
+    k = k.argmax(axis=1)
+
+    ## Create a Gaussian distribution depending on the k
+    ## above, scaling by sigma and offsetting mu
+    rn = np.random.randn(LATENT_VEC)
+    sampled = rn * sigma[k][0] + mu[k][0]
+    sampled_tensor = torch.tensor(sampled, dtype=torch.float, device=DEVICE)
+    return sampled_tensor.view(1, LATENT_VEC)
+
+
 def sample_long_term(vae, lstm, start_ex):
+    """ Given a frame, tries to predict the next 100 encoded vectors """
+
     frames = torch.tensor(start_ex[0], dtype=torch.float, device=DEVICE).div(255)
-    save_image(frames.view(3, 128, 128), "results/test-origin.png")
-    z = vae(frames.view(1, 3, 128, 128), encode=True)
+    save_image(frames.view(3, WIDTH, HEIGHT), "results/test-origin.png")
+    old_z = vae(frames.view(1, 3, WIDTH, HEIGHT), encode=True)
     
     with torch.no_grad():
         for i in range(1, 100):
-            new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
-            pi, sigma, mu = lstm(new_state.view(1, 1, 65))
-            values, idx = torch.max(pi, 1)
-            print(pi)
-            z = mu[0][idx].view(1, 64)
+            if i == 1:
+                new_state = torch.cat((old_z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
+            else:
+                new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
+            pi, sigma, mu = lstm(new_state.view(1, 1, LATENT_VEC + 1))
+            z = sample(pi, mu, sigma)
             res = vae.decode(z)[0] 
+            print(res)
             save_image(res, "results/test-{}.png".format(i))
     assert 0
 
@@ -71,7 +103,6 @@ def train_lstm(current_time):
     lr = LR
     version = 1
     total_ite = 1
-    # criterion = VAELoss()
 
     client = MongoClient()
     db = client.retro_contest
@@ -91,18 +122,17 @@ def train_lstm(current_time):
         state = create_state(version, lr, total_ite, optimizer)
         save_checkpoint(lstm, "lstm", state, current_time)
     else:
-        optimizer = create_optimizer(vae, lr, param=checkpoint['optimizer'])
+        optimizer = create_optimizer(lstm, lr, param=checkpoint['optimizer'])
         total_ite = checkpoint['total_ite']
         lr = checkpoint['lr']
         version = checkpoint['version']
         last_id = 0
-    # create_img(vae, version)
     
     while len(dataset) < SIZE:
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
         time.sleep(5)
     
-    # sample_long_term(vae, lstm, dataset[1000])
+    sample_long_term(vae, lstm, dataset[1000])
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
     while True:
@@ -110,17 +140,21 @@ def train_lstm(current_time):
         for batch_idx, (frames, actions, rewards) in enumerate(dataloader):
             running_loss = []
             # lr, optimizer = update_lr(lr, optimizer, total_ite)
+
+            ## Save the model
             if total_ite % SAVE_TICK == 0:
                 version += 1
                 state = create_state(version, lr, total_ite, optimizer)
                 save_checkpoint(lstm, "lstm", state, current_time)
-                # create_img(lstm, version)
+
+            ## Create input tensors
             frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
             encoded = vae(frames, encode=True)
             example = {
                 'encoded': encoded,
-                'actions' : torch.tensor(actions, dtype=torch.float, device=DEVICE)
+                'actions' : torch.tensor(actions, dtype=torch.float, device=DEVICE).div(ACTION_SPACE)
             }
+
             loss = train_epoch(lstm, optimizer, example)
             running_loss.append(loss)
 

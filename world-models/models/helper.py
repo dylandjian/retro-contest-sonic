@@ -84,9 +84,9 @@ def get_player(current_time, version, model):
     
     if model == "vae": 
         # vae = VAE((HEIGHT, WIDTH, 3), 50, LATENT_VEC).to(DEVICE)
-        vae = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
+        model = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
     elif model == "lstm":
-        lstm = LSTM(HIDDEN_UNITS, LATENT_VEC,\
+        model = LSTM(HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
-    checkpoint = load_torch_models(path, vae, models[0])
-    return vae, checkpoint
+    checkpoint = load_torch_models(path, model, models[0])
+    return model, checkpoint

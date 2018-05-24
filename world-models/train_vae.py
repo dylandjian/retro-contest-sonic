@@ -43,14 +43,15 @@ def train_vae(current_time):
     lr = LR
     version = 1
     total_ite = 1
-    # criterion = VAELoss()
 
     client = MongoClient()
     db = client.retro_contest
     collection = db[current_time]
     fs = gridfs.GridFS(db)
 
-    vae, checkpoint = load_model(current_time, -1, model="vae")
+    ## Load or create models
+    # vae, checkpoint = load_model(current_time, -1, model="vae")
+    vae = False
     if not vae:
         vae = ConvVAE((WIDTH, HEIGHT, 3), LATENT_VEC).to(DEVICE)
         optimizer = create_optimizer(vae, lr)
@@ -74,17 +75,21 @@ def train_vae(current_time):
         for batch_idx, (frames, actions, rewards) in enumerate(dataloader):
             running_loss = []
             # lr, optimizer = update_lr(lr, optimizer, total_ite)
+
+            ## Save the models
             if total_ite % SAVE_TICK == 0:
                 version += 1
                 state = create_state(version, lr, total_ite, optimizer)
                 save_checkpoint(vae, "vae", state, current_time)
                 create_img(vae, version)
     
+            ## Create inputs
             example = {
                 'frames': torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255),
                 'rewards': torch.tensor(rewards, dtype=torch.float, device=DEVICE),
                 'actions' : torch.tensor(actions, dtype=torch.float, device=DEVICE)
             }
+
             loss = train_epoch(vae, optimizer, example)
             running_loss.append(loss)
 

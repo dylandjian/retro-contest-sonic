@@ -48,7 +48,7 @@ def create_traverse_latent(vae, version):
 
 def create_img(vae, version):
     with torch.no_grad():
-        sample = torch.randn(64, 64).to(DEVICE)
+        sample = torch.randn(64, LATENT_VEC).to(DEVICE)
         final_sample = vae.decode(sample).cpu()
     save_image(final_sample,
         'results/sample_{}.png'.format(version))

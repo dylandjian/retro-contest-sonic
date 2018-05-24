@@ -18,17 +18,21 @@ class LSTM(nn.Module):
         # self.fc1 = nn.Linear(self.z_dim + 1, hidden_dim)
         self.lstm = nn.LSTM(self.z_dim + 1, hidden_units, num_layers)
         self.z_pi = nn.Linear(hidden_units, n_gaussians)
-        self.z_sigma = nn.Linear(hidden_units, n_gaussians * self.z_dim)
-        self.z_mu = nn.Linear(hidden_units, n_gaussians * self.z_dim) 
+        self.z_sigma = nn.Linear(hidden_units, n_gaussians)
+        self.z_mu = nn.Linear(hidden_units, n_gaussians) 
 
 
     def forward(self, x):
-        # z = F.relu(self.fc1(x))
+        ## Hidden state
+        # z = F.tanh(self.fc1(x))
         z, self.hidden = self.lstm(x, self.hidden)
+
+        ## Probabilities for each Gaussian
         pi = self.z_pi(z).view(-1, self.n_gaussians, 1)
         pi = F.softmax(pi, dim=1)
-        sigma = torch.exp(self.z_sigma(z)).view(-1, self.n_gaussians, self.z_dim)
-        mu = self.z_mu(z).view(-1, self.n_gaussians, self.z_dim)
+
+        sigma = torch.exp(self.z_sigma(z)).view(-1, self.n_gaussians, 1)
+        mu = self.z_mu(z).view(-1, self.n_gaussians, 1)
         return pi, sigma, mu
 
 
