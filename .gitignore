@@ -1,2 +1,4 @@
-retro-contest
 __pycache__
+world-models/saved_models
+results/
+data/
