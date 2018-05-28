@@ -16,24 +16,34 @@ LATENT_VEC = 128
 VAE_LOSS = "bce"
 
 ## RNN
-HIDDEN_UNITS = 256
+HIDDEN_UNITS = 512
 HIDDEN_DIM = 1024
-GAUSSIANS = 10
-NUM_LAYERS = 4
+TEMPERATURE = 1.25
+GAUSSIANS = 8
+NUM_LAYERS = 1
 MDN_CONST = 1.0 / math.sqrt(2.0 * math.pi)
+
+## Controller
+SIGMA_INIT = 0.1
+POPULATION = 64
+SCORE_CAP = 5000
+REPEAT_ROLLOUT = 4
+RENDER_TICK = 32
+TIMESTEP_DECAY = 150 
 
 ## Image size
 HEIGHT = 128
 WIDTH = 128
 
 ## Dataset
-SIZE = 4000
+SIZE = 17000
 REPEAT = 0
 
 ## Play
-PARALLEL = 5
+PARALLEL = 4
 PLAYOUTS = 2500
-MAX_REPLACEMENT = 0.4
+PLAYOUTS_PER_LEVEL = 10000
+MAX_REPLACEMENT = 1
 ACTION_SPACE = 9
 
 ## Training
@@ -45,38 +55,33 @@ LR_DECAY = 0.1
 BATCH_SIZE = 32
 
 ## Refresh
-LOSS_TICK = 50
-REFRESH_TICK = 1000
-SAVE_TICK = 1000
+LOSS_TICK = 100
+REFRESH_TICK = 500
+SAVE_TICK = 5000
 LR_DECAY_TICK = 100000
 
 ## Jerk
 EXPLOIT_BIAS = 0.25
-TOTAL_TIMESTEPS = 1000000
+MAX_TIMESTEPS = 900
 
 ## Env
 GAMES = {
     "SONIC-1": "SonicTheHedgehog-Genesis"
 }
-# LEVELS = {
-#     "SonicTheHedgehog-Genesis": [
-#         "SpringYardZone.Act3",
-#         "SpringYardZone.Act2",
-#         "GreenHillZone.Act3",
-#         "GreenHillZone.Act1",
-#         "StarLightZone.Act2",
-#         "StarLightZone.Act1",
-#         "MarbleZone.Act2",
-#         "MarbleZone.Act1",
-#         "MarbleZone.Act3",
-#         "ScrapBrainZone.Act2",
-#         "LabyrinthZone.Act2",
-#         "LabyrinthZone.Act1",
-#         "LabyrinthZone.Act3"
-#     ]
-# }
 LEVELS = {
     "SonicTheHedgehog-Genesis": [
         "SpringYardZone.Act3",
+        "SpringYardZone.Act2",
+        "GreenHillZone.Act3",
+        "GreenHillZone.Act1",
+        "StarLightZone.Act2",
+        "StarLightZone.Act1",
+        "MarbleZone.Act2",
+        "MarbleZone.Act1",
+        "MarbleZone.Act3",
+        "ScrapBrainZone.Act2",
+        "LabyrinthZone.Act2",
+        "LabyrinthZone.Act1",
+        "LabyrinthZone.Act3"
     ]
 }

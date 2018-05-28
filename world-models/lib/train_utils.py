@@ -65,7 +65,7 @@ def create_state(current_version, lr, total_ite, optimizer):
     state = {
         'version': current_version,
         'lr': lr,
-        'total_ite': total_ite,
+        'total_ite': total_ite + 1,
         'optimizer': optimizer.state_dict()
     }
     return state

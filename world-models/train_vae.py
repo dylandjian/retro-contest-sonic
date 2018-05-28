@@ -12,6 +12,7 @@ from models.vae import VAE, ConvVAE
 from torch.utils.data import DataLoader
 from lib.dataset import FrameDataset
 from lib.visu import create_img
+from torchvision.utils import save_image
 from lib.train_utils import create_optimizer, fetch_new_run, create_state
 
 
@@ -28,7 +29,6 @@ def train_epoch(vae, optimizer, example):
     """ Used to train the 3 models over a single batch """
 
     optimizer.zero_grad()
-    
     recon_x, mu, logvar = vae(example['frames'])
     loss = loss_fn(recon_x, example['frames'], mu, logvar)
     loss.backward()
@@ -50,8 +50,7 @@ def train_vae(current_time):
     fs = gridfs.GridFS(db)
 
     ## Load or create models
-    # vae, checkpoint = load_model(current_time, -1, model="vae")
-    vae = False
+    vae, checkpoint = load_model(current_time, -1, model="vae")
     if not vae:
         vae = ConvVAE((WIDTH, HEIGHT, 3), LATENT_VEC).to(DEVICE)
         optimizer = create_optimizer(vae, lr)

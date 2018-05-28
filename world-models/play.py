@@ -1,6 +1,6 @@
 import click
 from const import *
-from lib.play_utils import Game
+from lib.play_utils import JerkGame
 import multiprocessing
 import time
 
@@ -15,7 +15,7 @@ def main(contest, folder):
     else:
         current_time = folder
 
-    jobs = [Game(str(current_time), process_id) for process_id\
+    jobs = [JerkGame(str(current_time), process_id) for process_id\
                     in range(PARALLEL)]
     for p in jobs:
         p.start()

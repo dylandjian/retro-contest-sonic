@@ -20,8 +20,9 @@ def gaussian_distribution(y, mu, sigma):
     ## Prepare the input to be transformed into a gaussian distribution
     y = y.unsqueeze(1)
     y = y.expand(-1, GAUSSIANS, LATENT_VEC)
+    res = torch.exp((-0.5 * ((y - mu) / sigma) ** 2) / TEMPERATURE)
 
-    result = MDN_CONST * torch.exp(-0.5 * ((y - mu) / sigma) ** 2) / sigma
+    result = MDN_CONST * res / sigma
     return result
 
 
@@ -91,9 +92,11 @@ def sample_long_term(vae, lstm, start_ex):
                 new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
             pi, sigma, mu = lstm(new_state.view(1, 1, LATENT_VEC + 1))
             z = sample(pi, mu, sigma)
-            res = vae.decode(z)[0] 
-            print(res)
-            save_image(res, "results/test-{}.png".format(i))
+            if i == 1:
+                res = vae.decode(z)[0].view(1, 3, 128, 128)
+            else:
+                res = torch.cat((res, vae.decode(z)[0].view(1, 3, 128, 128)))
+        save_image(res, "results/test-{}.png".format(i))
     assert 0
 
 
@@ -114,7 +117,6 @@ def train_lstm(current_time):
         vae = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
 
     lstm, checkpoint = load_model(current_time, -1, model="lstm")
-    # lstm = False
     if not lstm:
         lstm = LSTM(HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
@@ -132,7 +134,7 @@ def train_lstm(current_time):
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
         time.sleep(5)
     
-    sample_long_term(vae, lstm, dataset[1000])
+    # sample_long_term(vae, lstm, dataset[1000])
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
     while True:

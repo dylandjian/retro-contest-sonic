@@ -1,4 +1,5 @@
 from const import *
+import timeit
 import matplotlib.pyplot as plt
 import numpy as np
 from .env import create_env
@@ -53,9 +54,16 @@ class TrackedEnv(gym.Wrapper):
         return self.env.get_act(a)
 
 
-class Game(multiprocessing.Process):
-    def __init__(self, current_time, process_id, mode="jerk"):
-        super(Game, self).__init__()
+
+def _formate_img(img):
+    img = cv2.resize(np.array(img), dsize=(WIDTH, HEIGHT),\
+                    interpolation=cv2.INTER_NEAREST)
+    return img.transpose((2, 0, 1))
+
+
+class JerkGame(multiprocessing.Process):
+    def __init__(self, current_time, process_id):
+        super(JerkGame, self).__init__()
         random.seed()
         self.id = process_id
         self.current_time = current_time
@@ -64,13 +72,7 @@ class Game(multiprocessing.Process):
         self.actions = []
         self.rewards = []
         self.done = []
-        self.mode = mode
 
-
-    def _formate_img(self, img):
-        img = cv2.resize(np.array(img), dsize=(WIDTH, HEIGHT),\
-                     interpolation=cv2.INTER_NEAREST)
-        return img.transpose((2, 0, 1))
 
 
     def add_db(self):
@@ -89,7 +91,8 @@ class Game(multiprocessing.Process):
 
     def get_level(self, levels):
         if len(self.levels) == 0:
-            self.levels = list(levels)
+            exit(0)
+            # self.levels = list(levels)
         level = random.choice(self.levels)
         self.levels.remove(level)
         return level
@@ -125,7 +128,7 @@ class Game(multiprocessing.Process):
             if done:
                 break
             if steps_taken < num_steps:
-                self.frames.append(self._formate_img(obs))
+                self.frames.append(_formate_img(obs))
         return total_rew, done
 
 
@@ -152,6 +155,7 @@ class Game(multiprocessing.Process):
         levels = LEVELS[game]
 
         current_idx = 0
+        total_frames = 0
         env = False
         new_ep = True
         solutions = []
@@ -164,37 +168,98 @@ class Game(multiprocessing.Process):
         self.collection = db[self.current_time]
         self.fs = gridfs.GridFS(db)
         self.levels = list(levels)
-
+        current_level = self.get_level(levels)
 
         while True:
 
             ## Push in the database
             if current_idx > PLAYOUTS:
                 self.add_db()
+                total_frames += current_idx
                 current_idx = 0
+
+                if total_frames > PLAYOUTS_PER_LEVEL:
+                    print("[PLAYING] Done with level: %s" % current_level)
+                    total_frames = 0
+                    current_level = self.get_level(levels)
                 print("[PLAYING] Pushing the database for %d" % self.id)
                 # time.sleep(180)
     
-            if self.mode == "jerk":
-                if new_ep:
-                    if (solutions and
-                            random.random() < EXPLOIT_BIAS + env.total_steps_ever / TOTAL_TIMESTEPS):
-                        solutions = sorted(solutions, key=lambda x: np.mean(x[0]))
-                        best_pair = solutions[-1]
-                        new_rew = self.exploit(env, best_pair[1])
-                        best_pair[0].append(new_rew)
-                        continue
-                    else:
-                        if env:
-                            env.close()
-                        env = TrackedEnv(create_env(game, self.get_level(levels)))
-                        _ = env.reset()
-                        new_ep = False
-                rew, new_ep = self.move(env, 100)
-                current_idx += 100
-                if not new_ep and rew <= 0:
-                    _, new_ep = self.move(env, 70, left=True)
-                if new_ep:
-                    solutions.append(([max(env.reward_history)], env.best_sequence()))
-            elif mode == "vaec":
-                pass
+            if new_ep:
+                if (solutions and
+                        random.random() < EXPLOIT_BIAS + env.total_steps_ever / TOTAL_TIMESTEPS):
+                    solutions = sorted(solutions, key=lambda x: np.mean(x[0]))
+                    best_pair = solutions[-1]
+                    new_rew = self.exploit(env, best_pair[1])
+                    best_pair[0].append(new_rew)
+                    continue
+                else:
+                    if env:
+                        env.close()
+                    env = TrackedEnv(create_env(game, current_level))
+                    _ = env.reset()
+                    new_ep = False
+            rew, new_ep = self.move(env, 100)
+            current_idx += 100
+            if not new_ep and rew <= 0:
+                _, new_ep = self.move(env, 70, left=True)
+            if new_ep:
+                solutions.append(([max(env.reward_history)], env.best_sequence()))
+
+
+
+class VAECGame(multiprocessing.Process):
+    def __init__(self, current_time, process_id, vae, lstm, controller, game, level, result_queue, max_timestep):
+        super(VAECGame, self).__init__()
+        np.random.seed()
+        self.process_id = process_id
+        self.game = game
+        self.level = level
+        self.current_time = current_time
+        self.vae = vae
+        self.lstm = lstm
+        self.controller = controller
+        self.result_queue = result_queue
+        self.max_timestep = max_timestep
+    
+    def run(self):
+        final_reward = []
+        env = False
+        start_time = timeit.default_timer()
+        for i in range(REPEAT_ROLLOUT):
+            if env:
+                env.close()
+            env = create_env(self.game, self.level)
+            obs = env.reset()
+            done = False
+            total_reward = 0
+            total_steps = 0
+            while not done:
+                with torch.no_grad():
+                    obs = torch.tensor(_formate_img(obs), dtype=torch.float, device=DEVICE).div(255)
+                    z, _ = self.vae.encode(obs.view(1, 3, HEIGHT, WIDTH))
+                    action = self.controller(torch.cat((z, 
+                                self.lstm.hidden[0].view(1, -1),
+                                self.lstm.hidden[1].view(1, -1)), dim=1))
+                    obs, reward, done, info = env.step(int(action))
+                    lstm_input = torch.cat((z, action), dim=1) 
+                    _ = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
+                total_steps += 1
+                total_reward += reward
+                if (self.process_id + 1) % RENDER_TICK == 0:
+                    env.render()
+                if total_steps > self.max_timestep:
+                    break
+            final_reward.append(total_reward)
+
+        final_time = timeit.default_timer() - start_time
+        if (self.process_id + 1) % RENDER_TICK == 0:
+            print("[{} / {}] Final mean reward: {} <---- WHAT YOU ARE WATCHING"\
+                        .format(self.process_id + 1, POPULATION, np.mean(final_reward)))
+        else:
+            print("[{} / {}] Final mean reward: {}" \
+                    .format(self.process_id + 1, POPULATION, np.mean(final_reward)))
+        env.close()
+        result = {}
+        result[self.process_id] = (np.mean(final_reward), final_time)
+        self.result_queue.put(result)

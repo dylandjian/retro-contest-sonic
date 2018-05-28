@@ -1,9 +1,10 @@
 import os
 from models.vae import VAE, ConvVAE
 from models.lstm import LSTM
+from models.controller import Controller
 import torch
 from const import *
-
+import pickle
 
 
 def save_checkpoint(model, filename, state, current_time):
@@ -33,6 +34,7 @@ def get_version(folder_path, file_version, model):
 
     if int(file_version) == -1:
         files = os.listdir(folder_path)
+        files = list(filter(lambda x: model in x, files))
         if len(files) > 0:
             all_version = list(map(lambda x: int(x.split('-')[0]), files))
             all_version.sort()
@@ -68,25 +70,35 @@ def load_model(folder, version, model="vae"):
     return get_player(folder, int(last_version), model)
 
 
-def get_player(current_time, version, model):
+def get_player(current_time, version, file_model):
     """ Load the models of a specific player """
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
                             '..', 'saved_models', str(current_time))
     try:
         mod = os.listdir(path)
-        models = list(filter(lambda model: (model.split('-')[0] == str(version)), mod))
+        models = list(filter(lambda model: (model.split('-')[0] == str(version) \
+                        and file_model in model), mod))
         models.sort()
         if len(models) == 0:
             return False, version
     except FileNotFoundError:
         return False, version
     
-    if model == "vae": 
+    if file_model == "vae": 
         # vae = VAE((HEIGHT, WIDTH, 3), 50, LATENT_VEC).to(DEVICE)
         model = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
-    elif model == "lstm":
+    elif file_model == "lstm":
         model = LSTM(HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
+    elif file_model == "controller":
+        model = Controller(LATENT_VEC, HIDDEN_UNITS * NUM_LAYERS * 2,
+                            ACTION_SPACE).to(DEVICE)
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
+                    '..', 'saved_models', current_time, "{}-solver.pkl".format(version))
+        solver = pickle.load(open(file_path, 'rb'))
+
     checkpoint = load_torch_models(path, model, models[0])
+    if file_model == "controller":
+        return checkpoint, solver
     return model, checkpoint

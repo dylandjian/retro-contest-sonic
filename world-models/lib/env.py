@@ -35,7 +35,9 @@ class SonicDiscretizer(gym.ActionWrapper):
 
 
     def action(self, a):
-        return a.copy()
+        if isinstance(a, np.ndarray):
+            return a.copy()
+        return self._actions[a].copy()
     
     
     def get_act(self, a):

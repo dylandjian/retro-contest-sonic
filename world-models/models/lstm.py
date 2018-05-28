@@ -25,6 +25,7 @@ class LSTM(nn.Module):
     def forward(self, x):
         ## Hidden state
         # z = F.tanh(self.fc1(x))
+        self.lstm.flatten_parameters()
         z, self.hidden = self.lstm(x, self.hidden)
 
         ## Probabilities for each Gaussian
