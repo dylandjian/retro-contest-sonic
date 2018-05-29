@@ -62,17 +62,17 @@ def _formate_img(img):
 
 
 class JerkGame(multiprocessing.Process):
-    def __init__(self, current_time, process_id):
+    def __init__(self, current_time, process_id, game):
         super(JerkGame, self).__init__()
         random.seed()
         self.id = process_id
         self.current_time = current_time
-        self.levels = []
         self.frames = []
         self.actions = []
         self.rewards = []
         self.done = []
-
+        self.game = game
+        self.levels = LEVELS
 
 
     def add_db(self):
@@ -89,12 +89,11 @@ class JerkGame(multiprocessing.Process):
         return
 
 
-    def get_level(self, levels):
-        if len(self.levels) == 0:
+    def get_level(self):
+        if len(self.levels[self.game]) == 0:
             exit(0)
-            # self.levels = list(levels)
-        level = random.choice(self.levels)
-        self.levels.remove(level)
+        level = random.choice(self.levels[self.game])
+        self.levels[self.game].remove(level)
         return level
     
 
@@ -151,8 +150,6 @@ class JerkGame(multiprocessing.Process):
 
     def run(self):
         ## Init possible levels
-        game = GAMES["SONIC-1"]
-        levels = LEVELS[game]
 
         current_idx = 0
         total_frames = 0
@@ -167,21 +164,20 @@ class JerkGame(multiprocessing.Process):
         ## Put the database variable inside the class instance
         self.collection = db[self.current_time]
         self.fs = gridfs.GridFS(db)
-        self.levels = list(levels)
-        current_level = self.get_level(levels)
+        current_level = self.get_level()
 
         while True:
 
             ## Push in the database
             if current_idx > PLAYOUTS:
-                self.add_db()
+                # self.add_db()
                 total_frames += current_idx
                 current_idx = 0
 
                 if total_frames > PLAYOUTS_PER_LEVEL:
                     print("[PLAYING] Done with level: %s" % current_level)
                     total_frames = 0
-                    current_level = self.get_level(levels)
+                    current_level = self.get_level()
                 print("[PLAYING] Pushing the database for %d" % self.id)
                 # time.sleep(180)
     
@@ -196,7 +192,7 @@ class JerkGame(multiprocessing.Process):
                 else:
                     if env:
                         env.close()
-                    env = TrackedEnv(create_env(game, current_level))
+                    env = TrackedEnv(create_env(self.game, current_level))
                     _ = env.reset()
                     new_ep = False
             rew, new_ep = self.move(env, 100)
@@ -234,6 +230,7 @@ class VAECGame(multiprocessing.Process):
             done = False
             total_reward = 0
             total_steps = 0
+            current_rewards = []
             while not done:
                 with torch.no_grad():
                     obs = torch.tensor(_formate_img(obs), dtype=torch.float, device=DEVICE).div(255)
@@ -243,18 +240,25 @@ class VAECGame(multiprocessing.Process):
                                 self.lstm.hidden[1].view(1, -1)), dim=1))
                     obs, reward, done, info = env.step(int(action))
                     lstm_input = torch.cat((z, action), dim=1) 
-                    _ = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
+                    future = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
                 total_steps += 1
+                if len(current_rewards) == REWARD_BUFFER:
+                    if np.mean(current_rewards) < MIN_REWARD:
+                        break
+                    current_rewards.insert(0, reward)
+                    current_rewards.pop()
+                else:
+                    current_rewards.append(reward)
                 total_reward += reward
-                if (self.process_id + 1) % RENDER_TICK == 0:
-                    env.render()
+                # if (self.process_id + 1) % RENDER_TICK == 0:
+                    # env.render()
                 if total_steps > self.max_timestep:
                     break
             final_reward.append(total_reward)
 
         final_time = timeit.default_timer() - start_time
         if (self.process_id + 1) % RENDER_TICK == 0:
-            print("[{} / {}] Final mean reward: {} <---- WHAT YOU ARE WATCHING"\
+            print("[{} / {}] Final mean reward: {} <---- WHAT YOU WERE WATCHING"\
                         .format(self.process_id + 1, POPULATION, np.mean(final_reward)))
         else:
             print("[{} / {}] Final mean reward: {}" \

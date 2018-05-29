@@ -15,8 +15,12 @@ def main(contest, folder):
     else:
         current_time = folder
 
-    jobs = [JerkGame(str(current_time), process_id) for process_id\
-                    in range(PARALLEL)]
+    jobs = []
+    for game in GAMES:
+        i = 1
+        for j in range(1, PARALLEL_PER_GAME + 1):
+            jobs.append(JerkGame(str(current_time), j * i, game))
+        i += 1
     for p in jobs:
         p.start()
     for p in jobs:

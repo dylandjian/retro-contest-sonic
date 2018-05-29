@@ -15,17 +15,7 @@ from lib.play_utils import VAECGame
 
 
 
-
-def train_controller(current_time):
-    current_version = 0
-    current_time = str(current_time)
-    current_best = 0
-    game = GAMES["SONIC-1"]
-    levels = LEVELS[game]
-    level = np.random.choice(levels)
-    max_timesteps = MAX_TIMESTEPS
-    result_queue = Queue()
-
+def init_models(current_time):
     vae, _ = load_model(current_time, -1, model="vae")
     if not vae:
         vae = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
@@ -44,13 +34,35 @@ def train_controller(current_time):
         solver = CMAES(LATENT_VEC + HIDDEN_UNITS * NUM_LAYERS * 2,
                     sigma_init=SIGMA_INIT,
                     popsize=POPULATION)
+    
+    return vae, lstm, best_controller, checkpoint, solver
 
+
+def train_controller(current_time):
+    current_version = 0
+    current_best = 0
+    current_time = str(current_time)
+    number_generations = 0
+    games = GAMES
+    levels = LEVELS
+    max_timesteps = MAX_TIMESTEPS
+    result_queue = Queue()
+
+    vae, lstm, best_controller, checkpoint, solver = init_models(current_time)
+    game = games[0]
+    games.remove(game)
+    level = levels[game][0]
+    levels[game].remove(level)
     while True:
         solutions = solver.ask()
         fitlist = np.zeros(POPULATION)
         left = 0
         if current_best > SCORE_CAP:
-            level = np.random.choice(levels)
+            if len(levels[game]) == 0:
+                game = game[0]
+                games.remove(game)
+            level = levels[game][0]
+            levels[game].remove(level)
 
         print("[CONTROLLER] Current level is: %s" % level)
         while left < POPULATION:
@@ -70,6 +82,7 @@ def train_controller(current_time):
                 p.join()
             left = left + PARALLEL
             print("[CONTROLLER] Done with batch")
+
         times = []
         for i in range(POPULATION):
             result = result_queue.get()
@@ -78,20 +91,26 @@ def train_controller(current_time):
             fitlist[keys[0]] = result[0][0]
             times.append(result[0][1])
 
+        solver.tell(fitlist)
+        new_results = solver.result()
+        current_best = new_results[1]
 
         print("[CONTROLLER] Total duration for generation: %.3f seconds, average duration:"
             " %.3f seconds per process, %.3f seconds per run" % ((np.sum(times), \
                     np.mean(times), np.mean(times) / REPEAT_ROLLOUT)))
-        solver.tell(fitlist)
-        new_results = solver.result()
-        current_best = new_results[1]
         print("[CONTROLLER] Creating generation: {} ...".format(current_version + 1))
         print("[CONTROLLER] Current score: {}".format(new_results[2]))
         print("[CONTROLLER] Best score ever: {}\n".format(new_results[1]))
+        print("[CONTROLLER] Average score on all of the processes: {}".format(np.mean(fitlist)))
+    
         new_w = torch.tensor(new_results[0], dtype=torch.float, device=DEVICE)
         best_controller.state_dict()['fc1.weight'].data.copy_(new_w)
+    
         current_version += 1
-        max_timesteps += TIMESTEP_DECAY
+        number_generations += 1
+        if number_generations % TIMESTEP_DECAY_TICK == 0:
+            max_timesteps += TIMESTEP_DECAY
+    
         state = { 'version': current_version }
         save_checkpoint(best_controller, "controller", state, current_time)
         dir_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
