@@ -52,3 +52,10 @@ def create_img(vae, version):
         final_sample = vae.decode(sample).cpu()
     save_image(final_sample,
         'results/sample_{}.png'.format(version))
+
+
+def create_img_recons(vae, original_frames, version):
+    with torch.no_grad():
+        final_sample, _, _ = vae(original_frames)
+    save_image(torch.cat((original_frames, final_sample)),
+        'results/sample_{}.png'.format(version))

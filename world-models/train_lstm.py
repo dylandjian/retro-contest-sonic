@@ -20,7 +20,7 @@ def gaussian_distribution(y, mu, sigma):
     ## Prepare the input to be transformed into a gaussian distribution
     y = y.unsqueeze(1)
     y = y.expand(-1, GAUSSIANS, LATENT_VEC)
-    res = torch.exp((-0.5 * ((y - mu) / sigma) ** 2) / TEMPERATURE)
+    res = torch.exp((-0.5 * ((y - mu) / sigma) ** 2))
 
     result = MDN_CONST * res / sigma
     return result
@@ -50,7 +50,6 @@ def train_epoch(lstm, optimizer, example):
     last_ex = example['encoded'][-1].view(1, example['encoded'].size()[1])
     target = torch.cat((example['encoded'][1:example['encoded'].size()[0]],\
                          last_ex,))
-
     loss = mdn_loss_function(pi, sigma, mu, target)
     loss.backward()
     optimizer.step()
@@ -80,20 +79,22 @@ def sample(pi, mu, sigma):
 def sample_long_term(vae, lstm, start_ex):
     """ Given a frame, tries to predict the next 100 encoded vectors """
 
-    frames = torch.tensor(start_ex[0], dtype=torch.float, device=DEVICE).div(255)
+    frames = torch.tensor(start_ex[0], dtype=torch.float, device=DEVICE).div(255) \
+                            .view(1, 3, WIDTH, HEIGHT)
     save_image(frames.view(3, WIDTH, HEIGHT), "results/test-origin.png")
-    old_z = vae(frames.view(1, 3, WIDTH, HEIGHT), encode=True)
     
     with torch.no_grad():
+        first_z = vae(frames, encode=True)
         for i in range(1, 100):
             if i == 1:
-                new_state = torch.cat((old_z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
+                new_state = torch.cat((first_z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
             else:
                 new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
             pi, sigma, mu = lstm(new_state.view(1, 1, LATENT_VEC + 1))
             z = sample(pi, mu, sigma)
             if i == 1:
-                res = vae.decode(z)[0].view(1, 3, 128, 128)
+                res = torch.cat((frames, vae.decode(first_z)[0].view(1, 3, 128, 128), 
+                        vae.decode(z)[0].view(1, 3, 128, 128)))
             else:
                 res = torch.cat((res, vae.decode(z)[0].view(1, 3, 128, 128)))
         save_image(res, "results/test-{}.png".format(i))
@@ -101,7 +102,7 @@ def sample_long_term(vae, lstm, start_ex):
 
 
 def train_lstm(current_time):
-    dataset = FrameDataset()
+    dataset = FrameDataset(lstm=True)
     last_id = 0
     lr = LR
     version = 1
@@ -128,7 +129,7 @@ def train_lstm(current_time):
         total_ite = checkpoint['total_ite']
         lr = checkpoint['lr']
         version = checkpoint['version']
-        last_id = 0
+        last_id = 5
     
     while len(dataset) < SIZE:
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
@@ -139,7 +140,7 @@ def train_lstm(current_time):
 
     while True:
         batch_loss = []
-        for batch_idx, (frames, actions, rewards) in enumerate(dataloader):
+        for batch_idx, (frames, actions) in enumerate(dataloader):
             running_loss = []
             # lr, optimizer = update_lr(lr, optimizer, total_ite)
 

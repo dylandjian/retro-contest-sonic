@@ -1,6 +1,6 @@
 import click
 from const import *
-from lib.play_utils import JerkGame
+from lib.play_utils import JerkGame, HumanGame
 import multiprocessing
 import time
 
@@ -19,7 +19,7 @@ def main(contest, folder):
     for game in GAMES:
         i = 1
         for j in range(1, PARALLEL_PER_GAME + 1):
-            jobs.append(JerkGame(str(current_time), j * i, game))
+            jobs.append(HumanGame(str(current_time), j * i, game))
         i += 1
     for p in jobs:
         p.start()

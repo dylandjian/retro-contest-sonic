@@ -22,14 +22,14 @@ def fetch_new_run(collection, fs, dataset, last_id, loaded_version=None):
     """ Update the dataset with new run from the databse """
 
     ## Fetch new run in reverse order so we add the newest run first
-    new_run = collection.find({"id": {"$gt": last_id}}).sort('_id', -1)
+    new_run = collection.find({"id": {"$gt": last_id}}).sort("id", 1)
     added_frames = 0
     added_runs = 0
     print("[TRAIN] Fetching: %d new run from the db"% (new_run.count()))
 
     for run in new_run:
-        run_data = pickle.loads(fs.get(run['run']).read())
-        number_frames = dataset.update(run_data)
+        data = pickle.loads(fs.get(run['run']).read())
+        number_frames = dataset.update(data)
         added_frames += number_frames
         added_runs += 1
 
@@ -38,7 +38,6 @@ def fetch_new_run(collection, fs, dataset, last_id, loaded_version=None):
             added_frames >= SIZE * MAX_REPLACEMENT and not loaded_version:
             break
         
-    
     print("[TRAIN] Last id: %d, added runs: %d added frames: %d"\
                     % (last_id, added_runs, added_frames))
     return last_id + added_runs

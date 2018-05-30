@@ -11,26 +11,29 @@ from pymongo import MongoClient
 from models.vae import VAE, ConvVAE
 from torch.utils.data import DataLoader
 from lib.dataset import FrameDataset
-from lib.visu import create_img
+from lib.visu import create_img, create_img_recons
 from torchvision.utils import save_image
 from lib.train_utils import create_optimizer, fetch_new_run, create_state
 
 
 def loss_fn(recon_x, x, mu, logvar):
+    batch_size = x.size()[0]
     if VAE_LOSS == "bce":
         loss = F.binary_cross_entropy(recon_x, x, size_average=False)
     else:
         loss = F.mse_loss(recon_x, x, size_average=False)
     kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    return loss + kld
+    loss /= batch_size
+    kld /= batch_size
+    return loss + BETA * kld.sum()
 
 
-def train_epoch(vae, optimizer, example):
+def train_epoch(vae, optimizer, frames):
     """ Used to train the 3 models over a single batch """
 
     optimizer.zero_grad()
-    recon_x, mu, logvar = vae(example['frames'])
-    loss = loss_fn(recon_x, example['frames'], mu, logvar)
+    recon_x, mu, logvar = vae(frames)
+    loss = loss_fn(recon_x, frames, mu, logvar)
     loss.backward()
     optimizer.step()
 
@@ -58,10 +61,10 @@ def train_vae(current_time):
         save_checkpoint(vae, "vae", state, current_time)
     else:
         optimizer = create_optimizer(vae, lr, param=checkpoint['optimizer'])
-        total_ite = checkpoint['total_ite']
+        total_ite = checkpoint['total_ite'] + 1
         lr = checkpoint['lr']
         version = checkpoint['version']
-        last_id = 50
+        last_id = 0
     
     while len(dataset) < SIZE:
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
@@ -71,7 +74,7 @@ def train_vae(current_time):
 
     while True:
         batch_loss = []
-        for batch_idx, (frames, actions, rewards) in enumerate(dataloader):
+        for batch_idx, (frames) in enumerate(dataloader):
             running_loss = []
             # lr, optimizer = update_lr(lr, optimizer, total_ite)
 
@@ -80,16 +83,12 @@ def train_vae(current_time):
                 version += 1
                 state = create_state(version, lr, total_ite, optimizer)
                 save_checkpoint(vae, "vae", state, current_time)
-                create_img(vae, version)
+            
+            if total_ite % SAVE_PIC_TICK == 0:
+                create_img_recons(vae, encoded_frames, version)
     
-            ## Create inputs
-            example = {
-                'frames': torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255),
-                'rewards': torch.tensor(rewards, dtype=torch.float, device=DEVICE),
-                'actions' : torch.tensor(actions, dtype=torch.float, device=DEVICE)
-            }
-
-            loss = train_epoch(vae, optimizer, example)
+            encoded_frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
+            loss = train_epoch(vae, optimizer, encoded_frames)
             running_loss.append(loss)
 
             ## Print running loss

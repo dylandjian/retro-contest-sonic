@@ -6,12 +6,14 @@ import matplotlib.pyplot as plt
 
 class FrameDataset(Dataset):
 
-    def __init__(self, size=SIZE, repeat=REPEAT):
+    def __init__(self, lstm=False, size=SIZE, repeat=REPEAT):
         """ Instanciate a dataset """
 
+        self.lstm = lstm
         self.frames = np.zeros((size, 3, HEIGHT, WIDTH))
-        self.actions = np.zeros((size))
-        self.rewards = np.zeros((size))
+        if lstm:
+            self.actions = np.zeros((size))
+        # self.rewards = np.zeros((size))
         self.current_len = 0
         self.repeat = repeat
 
@@ -22,8 +24,9 @@ class FrameDataset(Dataset):
 
     def __getitem__(self, idx):
         
-        return self.frames[idx], \
-            self.actions[idx], self.rewards[idx]
+        if self.lstm:
+            return self.frames[idx], self.actions[idx]
+        return self.frames[idx]
 
 
     def _formate_state(self, frames, actions, rewards):
@@ -45,10 +48,11 @@ class FrameDataset(Dataset):
         self.frames = np.roll(self.frames, total_obs, axis=0)
         self.frames[:total_obs] = np.array(run[0])
 
-        self.actions = np.roll(self.actions, total_obs, axis=0)
-        self.actions[:total_obs] = np.array(run[1])
+        if self.lstm:
+            self.actions = np.roll(self.actions, total_obs, axis=0)
+            self.actions[:total_obs] = np.array(run[1])
 
-        self.rewards = np.roll(self.rewards, total_obs, axis=0)
-        self.rewards[:total_obs] = np.array(run[2])
+        # self.rewards = np.roll(self.rewards, total_obs, axis=0)
+        # self.rewards[:total_obs] = np.array(run[2])
 
         return total_obs 
