@@ -10,11 +10,14 @@ class Controller(nn.Module):
 
         self.action_space = action_space
         self.fc1 = nn.Linear(hidden_dim + hidden_units, 512)
-        self.fc2 = nn.Linear(512, 1)
+        self.fc2 = nn.Linear(512, action_space)
         
     def forward(self, x):
         x = F.tanh(self.fc1(x))
         ## -1 because we remove the last action which is idle
-        res = ((F.tanh(self.fc2(x)) + 1) * (self.action_space - 1)) / 2
-        return torch.trunc(res)
+        # res = ((F.tanh(self.fc2(x)) + 1) * (self.action_space - 1)) / 2
+        # return torch.trunc(res)
+        x = F.softmax(self.fc2(x), dim=1)
+        _, res = torch.max(x, 1)
+        return res.float()
     

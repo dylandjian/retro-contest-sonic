@@ -347,7 +347,8 @@ class VAECGame(multiprocessing.Process):
                                 self.lstm.hidden[0].view(1, -1),
                                 self.lstm.hidden[1].view(1, -1)), dim=1))
                     obs, reward, done, info = env.step(int(action))
-                    lstm_input = torch.cat((z, action), dim=1) 
+                    action /= ACTION_SPACE
+                    lstm_input = torch.cat((z, action.view(1, 1)), dim=1) 
                     future = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
                 total_steps += 1
                 if len(current_rewards) == REWARD_BUFFER:
@@ -358,8 +359,8 @@ class VAECGame(multiprocessing.Process):
                 else:
                     current_rewards.append(reward)
                 total_reward += reward
-                # if (self.process_id + 1) % RENDER_TICK == 0:
-                    # env.render()
+                if (self.process_id + 1) % 2 == 0:
+                    env.render()
                 if total_steps > self.max_timestep:
                     break
             final_reward.append(total_reward)

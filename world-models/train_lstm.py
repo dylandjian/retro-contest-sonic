@@ -41,15 +41,16 @@ def train_epoch(lstm, optimizer, example):
     lstm.hidden = lstm.init_hidden()
 
     ## Concatenate action to encoded vector
-    x = torch.cat((example['encoded'], example['actions'].view(-1, 1)), dim=1)
+    x = torch.cat((example['encoded'][:-30], example['actions'][:-30].view(-1, 1)), dim=1)
     x = x.view(-1, 1, x.size()[1])
     pi, sigma, mu = lstm(x)
 
     ## Shift all elements to the left and add a copy of the last
     ## element at the end
-    last_ex = example['encoded'][-1].view(1, example['encoded'].size()[1])
-    target = torch.cat((example['encoded'][1:example['encoded'].size()[0]],\
-                         last_ex,))
+    # last_ex = example['encoded'][-1].view(1, example['encoded'].size()[1])
+    # target = torch.cat((example['encoded'][30:example['encoded'].size()[0]],\
+    #                      last_ex,))
+    target = example['encoded'][30:example['encoded'].size()[0]]
     loss = mdn_loss_function(pi, sigma, mu, target)
     loss.backward()
     optimizer.step()
@@ -85,20 +86,19 @@ def sample_long_term(vae, lstm, start_ex):
     
     with torch.no_grad():
         first_z = vae(frames, encode=True)
-        for i in range(1, 100):
+        for i in range(1, 600):
             if i == 1:
-                new_state = torch.cat((first_z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
+                new_state = torch.cat((first_z, torch.full((1, 1), 1, device=DEVICE).div(ACTION_SPACE)), dim=1)
             else:
-                new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE)), dim=1)
+                new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE).div(ACTION_SPACE)), dim=1)
             pi, sigma, mu = lstm(new_state.view(1, 1, LATENT_VEC + 1))
             z = sample(pi, mu, sigma)
             if i == 1:
                 res = torch.cat((frames, vae.decode(first_z)[0].view(1, 3, 128, 128), 
                         vae.decode(z)[0].view(1, 3, 128, 128)))
-            else:
+            elif i % 50 == 0:
                 res = torch.cat((res, vae.decode(z)[0].view(1, 3, 128, 128)))
         save_image(res, "results/test-{}.png".format(i))
-    assert 0
 
 
 def train_lstm(current_time):
@@ -135,7 +135,8 @@ def train_lstm(current_time):
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
         time.sleep(5)
     
-    # sample_long_term(vae, lstm, dataset[1000])
+    sample_long_term(vae, lstm, dataset[3000])
+    assert 0
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
     while True:
@@ -150,6 +151,8 @@ def train_lstm(current_time):
                 state = create_state(version, lr, total_ite, optimizer)
                 save_checkpoint(lstm, "lstm", state, current_time)
 
+            if total_ite % SAVE_PIC_TICK == 0:
+                sample_long_term(vae, lstm, dataset[3000])
             ## Create input tensors
             frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
             encoded = vae(frames, encode=True)
