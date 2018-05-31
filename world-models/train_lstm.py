@@ -17,16 +17,24 @@ from torchvision.utils import save_image
 
 
 def gaussian_distribution(y, mu, sigma):
+    """ Transform the predictions into distributions """
+
     ## Prepare the input to be transformed into a gaussian distribution
     y = y.unsqueeze(1)
     y = y.expand(-1, GAUSSIANS, LATENT_VEC)
-    res = torch.exp((-0.5 * ((y - mu) / sigma) ** 2))
 
-    result = MDN_CONST * res / sigma
+    result = torch.exp((-0.5 * ((y - mu) / sigma) ** 2))
+    result = MDN_CONST * result / sigma
+
     return result
 
 
 def mdn_loss_function(out_pi, out_sigma, out_mu, y):
+    """
+    Mixed Density Network loss function, see : 
+    https://mikedusenberry.com/mixture-density-networks
+    """
+
     result = gaussian_distribution(y, out_mu, out_sigma)
     result = result * out_pi
     result = torch.sum(result, dim=1)
@@ -63,7 +71,7 @@ def sample(pi, mu, sigma):
     mu = mu.cpu().numpy()[0]
     sigma = sigma.cpu().numpy()[0]
 
-    ## Get the correct index depending on the probabilities
+    ## Get the right index depending on the probabilities
     ## of each Gaussian distribution 
     z = np.random.gumbel(loc=0, scale=1, size=pi.shape)
     k = (np.log(pi) + z)
@@ -101,17 +109,13 @@ def sample_long_term(vae, lstm, start_ex):
         save_image(res, "results/test-{}.png".format(i))
 
 
-def train_lstm(current_time):
-    dataset = FrameDataset(lstm=True)
+def init_models(current_time):
+    """ Init variables for code clarity despite the long return """
+
     last_id = 0
     lr = LR
     version = 1
     total_ite = 1
-
-    client = MongoClient()
-    db = client.retro_contest
-    collection = db[current_time]
-    fs = gridfs.GridFS(db)
 
     vae, _ = load_model(current_time, -1, model="vae")
     if not vae:
@@ -130,6 +134,19 @@ def train_lstm(current_time):
         lr = checkpoint['lr']
         version = checkpoint['version']
         last_id = 5
+
+    return vae, lstm, optimizer, total_ite, lr, version, last_id
+
+
+
+def train_lstm(current_time):
+    dataset = FrameDataset(lstm=True)
+    client = MongoClient()
+    db = client.retro_contest
+    collection = db[current_time]
+    fs = gridfs.GridFS(db)
+
+    vae, lstm, optimizer, total_ite, lr, version, last_id = init_models(current_time)
     
     while len(dataset) < SIZE:
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
@@ -153,7 +170,8 @@ def train_lstm(current_time):
 
             if total_ite % SAVE_PIC_TICK == 0:
                 sample_long_term(vae, lstm, dataset[3000])
-            ## Create input tensors
+
+            ## Create latent vector z for the batch
             frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
             encoded = vae(frames, encode=True)
             example = {

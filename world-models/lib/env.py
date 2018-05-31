@@ -10,7 +10,8 @@ import retro
 
 def create_env(env_name, env_state, contest=False):
     if not contest:
-        env = SonicDiscretizer(retro.make(env_name, env_state, scenario="contest", use_restricted_actions=retro.ACTIONS_FILTERED))
+        # env = SonicDiscretizer(retro.make(env_name, env_state, scenario="contest", use_restricted_actions=retro.ACTIONS_FILTERED))
+        env = SonicDiscretizer(make(env_name, env_state))
     else:
         env = grc.RemoteEnv('tmp/sock')
     return env

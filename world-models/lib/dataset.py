@@ -7,15 +7,16 @@ import matplotlib.pyplot as plt
 class FrameDataset(Dataset):
 
     def __init__(self, lstm=False, size=SIZE, repeat=REPEAT):
-        """ Instanciate a dataset """
+        """ Instanciate a dataset extending PyTorch """
 
         self.lstm = lstm
+        self.current_len = 0
+        self.repeat = repeat
+
         self.frames = np.zeros((size, 3, HEIGHT, WIDTH))
         if lstm:
             self.actions = np.zeros((size))
         # self.rewards = np.zeros((size))
-        self.current_len = 0
-        self.repeat = repeat
 
 
     def __len__(self):
@@ -30,8 +31,9 @@ class FrameDataset(Dataset):
 
 
     def _formate_state(self, frames, actions, rewards):
-        """ Repeat the probas and the winner to make every example identical after
-            the dihedral rotation has been applied """
+        """
+        Repeat the actions and the rewards to make every example identical
+        """
 
         actions = np.full((self.repeat, 1), actions)
         rewards = np.full((self.repeat, 1), rewards)
@@ -42,7 +44,6 @@ class FrameDataset(Dataset):
         """ Rotate the circular buffer to add new games at end """
 
         total_obs = len(run[0])
-        
         self.current_len = min(self.current_len + total_obs, SIZE)
 
         self.frames = np.roll(self.frames, total_obs, axis=0)

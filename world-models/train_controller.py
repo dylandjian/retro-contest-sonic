@@ -3,15 +3,15 @@ import pickle
 import os
 import numpy as np
 from const import *
-import multiprocessing
-from multiprocessing import Queue
+import torch.multiprocessing as multiprocessing
+from torch.multiprocessing import Queue
 import time
 from models.vae import ConvVAE
 from models.lstm import LSTM
 from models.controller import Controller
 from models.helper import load_model, save_checkpoint
 from lib.controller_utils import CMAES
-from lib.play_utils import VAECGame
+from lib.agent_play import VAECGame
 
 
 
@@ -74,8 +74,9 @@ def train_controller(current_time):
                 controller = Controller(LATENT_VEC, HIDDEN_UNITS * NUM_LAYERS * 2, ACTION_SPACE).to(DEVICE)
                 new_w = torch.tensor(solutions[idx], dtype=torch.float, device=DEVICE)
                 controller.state_dict()['fc1.weight'].data.copy_(new_w)
-                jobs.append(VAECGame(current_time, idx, vae, lstm, controller, \
-                        game, level, result_queue, max_timesteps))
+                new_game = VAECGame(current_time, idx, vae, lstm, controller, \
+                        game, level, result_queue, max_timesteps)
+                jobs.append(new_game)
             for p in jobs:
                 p.start()
             for p in jobs:
@@ -121,7 +122,7 @@ def train_controller(current_time):
 @click.command()
 @click.option("--folder", default=-1)
 def main(folder):
-    multiprocessing.set_start_method('spawn')
+    multiprocessing.set_start_method('forkserver')
     if folder == -1:
         current_time = int(time.time())
     else:

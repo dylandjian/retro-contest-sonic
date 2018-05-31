@@ -25,7 +25,7 @@ NUM_LAYERS = 1
 MDN_CONST = 1.0 / math.sqrt(2.0 * math.pi)
 
 ## Controller
-PARALLEL = 2
+PARALLEL = 4
 SIGMA_INIT = 0.1
 POPULATION = 70
 SCORE_CAP = 8000

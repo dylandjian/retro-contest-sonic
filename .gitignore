@@ -2,3 +2,4 @@ __pycache__
 world-models/saved_models
 results/
 data/
+world-models/add_index.py
