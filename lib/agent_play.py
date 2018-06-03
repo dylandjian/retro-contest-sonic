@@ -50,7 +50,8 @@ class VAECGame(multiprocessing.Process):
                     for i in res:
                         final_action[convert[i]] = True
                     obs, reward, done, info = env.step(final_action)
-                    action = torch.tensor(env.get_act(final_action), dtype=torch.float, device=DEVICE).div(10)
+                    action = torch.tensor(env.get_act(final_action), dtype=torch.float, device=DEVICE)\
+                                            .div(ACTION_SPACE_DISCRETE)
                     lstm_input = torch.cat((z, action.view(1, 1)), dim=1) 
                     future = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
                 total_steps += 1

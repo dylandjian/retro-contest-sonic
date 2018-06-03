@@ -12,6 +12,12 @@ from lib.train_utils import init_models
 from models.controller import Controller
 
 
+def rankmin(x):
+    u, inv, counts = np.unique(x, return_inverse=True, return_counts=True)
+    csum = np.zeros_like(counts)
+    csum[1:] = counts[:-1].cumsum()
+    return csum[inv]
+
 
 def train_controller(current_time):
     current_time = str(current_time)
@@ -83,8 +89,9 @@ def train_controller(current_time):
             times.append(result[0][1])
 
         current_score = np.max(fitlist)
+        average_score = np.mean(fitlist)
         max_idx = np.argmax(fitlist)
-        fitlist = (np.argsort(fitlist) + 1) / POPULATION - 0.5
+        fitlist = (rankmin(fitlist)) / POPULATION
         solver.tell(fitlist)
         new_results = solver.result()
 
@@ -94,7 +101,7 @@ def train_controller(current_time):
         print("[CONTROLLER] Creating generation: {} ...".format(current_solver_version + 1))
         print("[CONTROLLER] Current best score: {}, new run best score: {}".format(current_best, current_score))
         print("[CONTROLLER] Best score ever: {}, current number of improvements: {}\n".format(current_best, current_ctrl_version))
-        print("[CONTROLLER] Average score on all of the processes: {}".format(np.mean(fitlist)))
+        print("[CONTROLLER] Average score on all of the processes: {}".format(average_score))
     
         number_generations += 1
         current_solver_version += 1
