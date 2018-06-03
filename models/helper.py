@@ -99,7 +99,7 @@ def get_player(current_time, version, file_model, solver_version=None):
         model = LSTM(HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
     elif file_model == "controller":
-        model = Controller(LATENT_VEC, HIDDEN_UNITS * NUM_LAYERS * 2,
+        model = Controller(LATENT_VEC, 0,
                             ACTION_SPACE).to(DEVICE)
 
     checkpoint = load_torch_models(path, model, models[0])

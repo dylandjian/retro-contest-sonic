@@ -40,7 +40,6 @@ class VAECGame(multiprocessing.Process):
                 with torch.no_grad():
                     obs = torch.tensor(_formate_img(obs), dtype=torch.float, device=DEVICE).div(255)
                     z, _ = self.vae.encode(obs.view(1, 3, HEIGHT, WIDTH))
-                    # action = self.controller(z)
                     action = self.controller(torch.cat((z, 
                                 self.lstm.hidden[0].view(1, -1),
                                 self.lstm.hidden[1].view(1, -1)), dim=1))
@@ -53,7 +52,7 @@ class VAECGame(multiprocessing.Process):
                     action = torch.tensor(env.get_act(final_action), dtype=torch.float, device=DEVICE)\
                                             .div(ACTION_SPACE_DISCRETE)
                     lstm_input = torch.cat((z, action.view(1, 1)), dim=1) 
-                    future = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
+                    _ = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
                 total_steps += 1
                 if len(current_rewards) == REWARD_BUFFER:
                     if np.mean(current_rewards) < MIN_REWARD:

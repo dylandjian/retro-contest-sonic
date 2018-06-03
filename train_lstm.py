@@ -25,7 +25,7 @@ def mdn_loss_function(out_pi, out_sigma, out_mu, y):
     """
 
     result = Normal(loc=out_mu, scale=out_sigma)
-    y = y.view(-1, SEQUENCE, LATENT_VEC)
+    y = y.view(-1, SEQUENCE, 1, LATENT_VEC)
     result = torch.exp(result.log_prob(y))
     result = torch.sum(result * out_pi, dim=2)
     result = -torch.log(EPSILON + result)
@@ -40,7 +40,7 @@ def train_epoch(lstm, optimizer, example):
     ## Concatenate action to encoded vector
     x = torch.cat((example['encoded'][:-OFFSET],
             example['actions'][:-OFFSET].view(-1, 1)), dim=1)
-    x = x.view(-1, SEQUENCE, LATENT_VEC + 1)
+    x = x.view(SEQUENCE, -1, LATENT_VEC + 1)
     ## Shift target encoded vector
     target = example['encoded'][OFFSET:example['encoded'].size()[0]]
 
@@ -54,30 +54,34 @@ def train_epoch(lstm, optimizer, example):
 
 def sample(pi, mu, sigma):
     sampled = torch.sum(pi * torch.normal(mu, sigma), dim=2)
-    return sampled.view(1, LATENT_VEC)
+    return sampled.view(50, LATENT_VEC)
 
 
-def sample_long_term(vae, lstm, frames, version):
+def sample_long_term(vae, lstm, frames, version, total_ite):
     """ Given a frame, tries to predict the next 100 encoded vectors """
 
     with torch.no_grad():
-        frames_z = vae(frames.view(-1, 3, WIDTH, HEIGHT)[0:4], encode=True)
+        frames_z = vae(frames.view(-1, 3, WIDTH, HEIGHT)[0:50], encode=True)
         first_z = frames_z[0].view(1, LATENT_VEC)
-        for i in range(1, 20):
+        for i in range(1, 60):
             if i == 1:
-                new_state = torch.cat((first_z, torch.full((1, 1), 1, device=DEVICE) \
+                print(frames_z.size())
+                new_state = torch.cat((frames_z, torch.full((50, 1), 1, device=DEVICE) \
                                 .div(ACTION_SPACE)), dim=1)
             else:
-                new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE)\
+                current_state = torch.cat((z, torch.full((50, 1), 1, device=DEVICE)\
                                 .div(ACTION_SPACE)), dim=1)
-            pi, sigma, mu = lstm(new_state.view(1, 1, LATENT_VEC + 1))
+                new_state = torch.cat((current_state, new_state[0:49]))
+            pi, sigma, mu = lstm(new_state.view(1, 50, LATENT_VEC + 1))
+            print(pi.size())
             z = sample(pi, mu, sigma)
+
             if i == 1:
                 res = torch.cat((frames[0:4], vae.decode(frames_z).view(-1, 3, WIDTH, HEIGHT), 
                         vae.decode(z)[0].view(1, 3, WIDTH, HEIGHT)))
             else:
                 res = torch.cat((res, vae.decode(z)[0].view(1, 3, WIDTH, HEIGHT)))
-        save_image(res, "results/test-{}.png".format(version))
+        save_image(res, "results/lstm/test-{}-{}.png".format(version, total_ite))
 
 
 def init_models(current_time):
@@ -140,8 +144,8 @@ def train_lstm(current_time):
             frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
 
             ## Save a picture of the long term sampling
-            if total_ite % SAVE_PIC_TICK == 0:
-                sample_long_term(vae, lstm, frames, version)
+            #if total_ite % SAVE_PIC_TICK == 0:
+            sample_long_term(vae, lstm, frames, version, total_ite)
 
             encoded = vae(frames, encode=True)
             example = {

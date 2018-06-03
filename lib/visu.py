@@ -31,7 +31,7 @@ def create_shading(vae, version, sample=None):
             plt.show()
             imgs.append(final_sample[0])
     save_image(imgs,
-        'results/sample_{}.png'.format(version))
+        'results/vae/sample_{}.png'.format(version))
 
 
 def create_traverse_latent(vae, version):
@@ -43,7 +43,7 @@ def create_traverse_latent(vae, version):
             final_sample = vae.decode(sample).cpu()
             imgs.append(final_sample[0])
     save_image(imgs,
-        'results/sample_{}.png'.format(version))
+        'results/vae/sample_{}.png'.format(version))
     
 
 def create_img(vae, version):
@@ -51,11 +51,11 @@ def create_img(vae, version):
         sample = torch.randn(64, LATENT_VEC).to(DEVICE)
         final_sample = vae.decode(sample).cpu()
     save_image(final_sample,
-        'results/sample_{}.png'.format(version))
+        'results/vae/sample_{}.png'.format(version))
 
 
 def create_img_recons(vae, original_frames, version):
     with torch.no_grad():
         final_sample, _, _ = vae(original_frames)
     save_image(torch.cat((original_frames, final_sample)),
-        'results/sample_{}.png'.format(version))
+        'results/vae/sample_{}.png'.format(version))

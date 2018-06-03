@@ -15,7 +15,8 @@ class LSTM(nn.Module):
         self.hidden_units = hidden_units
         self.hidden = self.init_hidden()
 
-        self.lstm = nn.LSTM(self.z_dim + 1, hidden_units, num_layers)
+        self.fc1 = nn.Linear(self.z_dim + 1, self.hidden_dim)
+        self.lstm = nn.LSTM(self.hidden_dim, hidden_units, num_layers)
         self.z_pi = nn.Linear(hidden_units, n_gaussians * self.z_dim)
         self.z_sigma = nn.Linear(hidden_units, n_gaussians * self.z_dim)
         self.z_mu = nn.Linear(hidden_units, n_gaussians * self.z_dim) 
@@ -23,7 +24,7 @@ class LSTM(nn.Module):
 
     def forward(self, x):
         ## Hidden state
-        # z = F.relu(self.fc1(x))
+        x = F.relu(self.fc1(x))
         self.lstm.flatten_parameters()
         z, self.hidden = self.lstm(x, self.hidden)
 
@@ -38,8 +39,8 @@ class LSTM(nn.Module):
 
 
     def init_hidden(self):
-        hidden = torch.zeros(self.num_layers, SEQUENCE, self.hidden_units, device=DEVICE)
-        cell = torch.zeros(self.num_layers, SEQUENCE, self.hidden_units, device=DEVICE)
+        hidden = torch.zeros(self.num_layers, 50, self.hidden_units, device=DEVICE)
+        cell = torch.zeros(self.num_layers, 50, self.hidden_units, device=DEVICE)
         return hidden, cell
 
 

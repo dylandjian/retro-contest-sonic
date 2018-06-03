@@ -30,8 +30,7 @@ def init_models(current_time, load_vae=True, load_lstm=True, load_controller=Tru
             solver = res[2]
             current_ctrl_version = checkpoint['version']
         else:
-            best_controller = Controller(LATENT_VEC, PARAMS_FC1,
-                                            ACTION_SPACE).to(DEVICE)
+            best_controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
             solver = CMAES(PARAMS_FC1 + LATENT_VEC + 512,
                         sigma_init=SIGMA_INIT,
                         popsize=POPULATION)
@@ -68,7 +67,7 @@ def fetch_new_run(collection, fs, dataset, last_id, loaded_version=None):
         added_runs += 1
 
         ## You cant replace more than 40% of the dataset at a time
-        if loaded_version and added_frames > SIZE or \
+        if loaded_version and added_frames >= SIZE or \
             added_frames >= SIZE * MAX_REPLACEMENT and not loaded_version:
             break
         
