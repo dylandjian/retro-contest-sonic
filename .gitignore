@@ -1,5 +1,6 @@
 __pycache__
-world-models/saved_models
+replay/
+saved_models
 results/
 data/
-world-models/add_index.py
+add_index.py
