@@ -5,19 +5,17 @@ import numpy
 import random
 
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 ##### CONFIG
 
 torch.set_printoptions(precision=10)
 
 ## CUDA variable from Torch
-CUDA = torch.cuda.is_available()
-torch.backends.cudnn.deterministic = True
-torch.manual_seed(15)
-numpy.random.seed(15)
-random.seed(15)
+#CUDA = torch.cuda.is_available()
+#torch.backends.cudnn.deterministic = True
 ## Dtype of the tensors depending on CUDA
-DEVICE = torch.device("cuda") if CUDA else torch.device("cpu")
+#DEVICE = torch.device("cuda") if CUDA else torch.device("cpu")
+DEVICE = torch.device("cpu")
 
 ## Eps for log
 EPSILON = 1e-6
@@ -32,18 +30,18 @@ OFFSET = 1
 HIDDEN_UNITS = 1024
 HIDDEN_DIM = 1024
 TEMPERATURE = 1.25
-GAUSSIANS = 10
-NUM_LAYERS = 2
-SEQUENCE = 250
+GAUSSIANS = 8
+NUM_LAYERS = 1
+SEQUENCE = 500
 PARAMS_FC1 = HIDDEN_UNITS * NUM_LAYERS * 2
 MDN_CONST = 1.0 / math.sqrt(2.0 * math.pi)
 
 ## Controller
-PARALLEL = 1
+PARALLEL = 32
 SIGMA_INIT = 4
-POPULATION = 16
+POPULATION = 64
 SCORE_CAP = 8000
-REPEAT_ROLLOUT = 1
+REPEAT_ROLLOUT = 5
 RENDER_TICK = 166
 MAX_TIMESTEPS = 1800
 TIMESTEP_DECAY = 150 
@@ -57,7 +55,7 @@ HEIGHT = 128
 WIDTH = 128
 
 ## Dataset
-SIZE = 50000
+SIZE = 20000
 MAX_REPLACEMENT = 0.1
 REPEAT = 0
 
@@ -74,13 +72,13 @@ ADAM = True
 LR = 1e-3
 L2_REG = 1e-4
 LR_DECAY = 0.1
-BATCH_SIZE = 1
-SAMPLE_SIZE = 500
+BATCH_SIZE = 4
+SAMPLE_SIZE = 1000
 
 ## Refresh
-LOSS_TICK = 5
-REFRESH_TICK = 100
-SAVE_PIC_TICK = 50
+LOSS_TICK = 2
+REFRESH_TICK = 40
+SAVE_PIC_TICK = 10
 SAVE_TICK = 100
 LR_DECAY_TICK = 100000
 

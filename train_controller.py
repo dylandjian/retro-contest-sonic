@@ -41,7 +41,7 @@ def train_controller(current_time):
     max_timesteps = MAX_TIMESTEPS
     result_queue = Queue()
 
-    vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1)
+    vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1, load_vae=True, load_controller=True, load_lstm=True)
     if checkpoint:
         current_ctrl_version = checkpoint["version"]
         current_solver_version = checkpoint["solver_version"]

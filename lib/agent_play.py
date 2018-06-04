@@ -6,9 +6,6 @@ import torch
 from .env import create_env
 from .play_utils import _formate_img
 from const import *
-import torch
-import numpy
-import random
 
 
 class VAECGame(multiprocessing.Process):
@@ -42,13 +39,10 @@ class VAECGame(multiprocessing.Process):
         env = False
         start_time = timeit.default_timer()
 
-        ## Dict to convert predicted actions to real buttons
-
         for i in range(REPEAT_ROLLOUT):
             if env:
                 env.close()
             env = create_env(self.game, self.level)
-            env.seed(15)
             obs = env.reset()
 
             done = False
@@ -58,9 +52,10 @@ class VAECGame(multiprocessing.Process):
 
             while not done:
                 with torch.no_grad():
-                    self.lstm.hidden = self.lstm.init_hidden(1)
+                    if total_steps % SEQUENCE == 0:
+                        self.lstm.hidden = self.lstm.init_hidden(1)
                     ## Predict the latent representation of the current frame
-                    obs = torch.tensor(_formate_img(obs), dtype=torch.float, device=torch.device("cuda")).div(255)
+                    obs = torch.tensor(_formate_img(obs), dtype=torch.float, device=DEVICE).div(255)
                     z = self.vae(obs.view(1, 3, HEIGHT, WIDTH), encode=True)
 
                     ## Use the latent representation and the hidden state of the LSTM
@@ -74,11 +69,14 @@ class VAECGame(multiprocessing.Process):
 
                     ## Update the hidden state of the LSTM
                     action = torch.tensor(env.get_act(final_action), dtype=torch.float, device=DEVICE)\
-                                            .div(ACTION_SPACE)
+                                            .div(ACTION_SPACE_DISCRETE)
                     lstm_input = torch.cat((z, action.view(1, 1)), dim=1) 
-                    if total_steps < 4:
-                        print("id: %d" % self.process_id, self.lstm.hidden[0][0:10])
-                    _ = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
+                    res = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
+#                    if total_steps < 4:
+#                        print("id: %d\n" % self.process_id, self.lstm.hidden[0][0:10])
+#                        print(lstm_input[0][0:10])
+#                        print(res[0][0:10])
+#                        print()
 
                 ## Check for minimum reward duration the last buffer duration
                 if len(current_rewards) == REWARD_BUFFER:

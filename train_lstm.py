@@ -40,7 +40,7 @@ def train_epoch(lstm, optimizer, example):
 
     ## Concatenate action to encoded vector
     x = torch.cat((example['encoded'],
-            example['actions'].view(-1, 1)), dim=1)
+            example['actions'].view(-1, 1).div(ACTION_SPACE_DISCRETE)), dim=1)
     x = x.view(-1, SEQUENCE, LATENT_VEC + 1)
 
     ## Shift target encoded vector

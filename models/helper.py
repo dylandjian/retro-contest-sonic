@@ -25,7 +25,7 @@ def save_checkpoint(model, filename, state, current_time):
 def load_torch_models(path, model, filename):
     """ Load an already saved model """
 
-    checkpoint = torch.load(os.path.join(path, filename))
+    checkpoint = torch.load(os.path.join(path, filename), map_location='cpu')
     model.load_state_dict(checkpoint['model'])
     return checkpoint
 
@@ -95,7 +95,7 @@ def get_player(current_time, version, file_model, solver_version=None, sequence=
         return False, version
     
     if file_model == "vae": 
-        model = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(torch.device("cuda"))
+        model = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
     elif file_model == "lstm":
         model = LSTM(sequence, HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)

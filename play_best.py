@@ -19,7 +19,7 @@ def test_controller(current_time):
     levels = LEVELS
     result_queue = Queue()
 
-    vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1)
+    vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1, load_vae=True, load_lstm=True, load_controller=True)
     print("Score: %d" % checkpoint['score'])
     game = games[0]
     level = levels[game][0]
