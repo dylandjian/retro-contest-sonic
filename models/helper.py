@@ -5,6 +5,7 @@ from models.controller import Controller
 import torch
 from const import *
 import pickle
+from lib.controller_utils import CMAES
 
 
 def save_checkpoint(model, filename, state, current_time):
@@ -51,7 +52,7 @@ def get_version(folder_path, file_version, model):
     return file_version
 
 
-def load_model(folder, version, model="vae"):
+def load_model(folder, version, model="vae", sequence=SEQUENCE):
     """ Load a player given a folder and a version """
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
@@ -75,10 +76,10 @@ def load_model(folder, version, model="vae"):
     if not last_version:
         return False, False
 
-    return get_player(folder, int(last_version), model, solver_version=solver_version)
+    return get_player(folder, int(last_version), model, solver_version=solver_version, sequence=sequence)
 
 
-def get_player(current_time, version, file_model, solver_version=None):
+def get_player(current_time, version, file_model, solver_version=None, sequence=1):
     """ Load the models of a specific player """
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
@@ -94,13 +95,12 @@ def get_player(current_time, version, file_model, solver_version=None):
         return False, version
     
     if file_model == "vae": 
-        model = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
+        model = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(torch.device("cuda"))
     elif file_model == "lstm":
-        model = LSTM(HIDDEN_UNITS, LATENT_VEC,\
+        model = LSTM(sequence, HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
     elif file_model == "controller":
-        model = Controller(LATENT_VEC, 0,
-                            ACTION_SPACE).to(DEVICE)
+        model = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
 
     checkpoint = load_torch_models(path, model, models[0])
     if file_model == "controller":
@@ -109,3 +109,33 @@ def get_player(current_time, version, file_model, solver_version=None):
         solver = pickle.load(open(file_path, 'rb'))
         return checkpoint, model, solver
     return model, checkpoint
+
+
+def init_models(current_time, load_vae=False, load_lstm=False, load_controller=True, sequence=SEQUENCE):
+
+    vae = lstm = best_controller = solver = None
+    if load_vae:
+        vae, checkpoint = load_model(current_time, -1, model="vae")
+        if not vae:
+            vae = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
+    
+    if load_lstm:
+        lstm, checkpoint = load_model(current_time, -1, model="lstm", sequence=sequence)
+        if not lstm:
+            lstm = LSTM(sequence, HIDDEN_UNITS, LATENT_VEC,\
+                        NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
+
+    if load_controller:    
+        res = load_model(current_time, -1, model="controller")
+        checkpoint = res[0]
+        if len(res) > 2:
+            best_controller = res[1]
+            solver = res[2]
+            current_ctrl_version = checkpoint['version']
+        else:
+            best_controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
+            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 512,
+                        sigma_init=SIGMA_INIT,
+                        popsize=POPULATION)
+
+    return vae, lstm, best_controller, solver, checkpoint

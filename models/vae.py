@@ -50,11 +50,13 @@ class ConvVAE(nn.Module):
         return h
 
 
-    def forward(self, x, encode=False):
+    def forward(self, x, encode=False, mean=True):
         mu, logvar = self.encode(x)
-        if encode:
-            return mu
         z = self.reparameterize(mu, logvar)
+        if encode:
+            if mean:
+                return mu
+            return z
         return self.decode(z), mu, logvar
 
 

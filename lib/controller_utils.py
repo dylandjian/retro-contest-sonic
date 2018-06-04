@@ -8,7 +8,7 @@ def compute_weight_decay(weight_decay, model_param_list):
 
 
 class CMAES:
-    def __init__(self, num_params, sigma_init=0.10, popsize=255, weight_decay=0.001):
+    def __init__(self, num_params, sigma_init=0.5, popsize=255, weight_decay=0.0):
         """
         Sigma: initial standard deviation
         Popsize: size of the population

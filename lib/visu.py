@@ -18,7 +18,6 @@ def create_shading(vae, version, sample=None):
             new_sample[0][i] += (1 - new_sample[0][i]) * 0.2
             with torch.no_grad():
                 final_sample = vae.decode(new_sample).cpu().numpy()[0].transpose(1, 2, 0)
-            print(final_sample.shape)
             plt.imshow(final_sample, interpolation='nearest')
             plt.show()
             imgs.append(final_sample[0])

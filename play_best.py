@@ -9,7 +9,7 @@ import time
 from models.helper import save_checkpoint
 from lib.controller_utils import CMAES
 from lib.agent_play import VAECGame
-from lib.train_utils import init_models
+from models.helper import init_models
 
 
 
@@ -19,7 +19,7 @@ def test_controller(current_time):
     levels = LEVELS
     result_queue = Queue()
 
-    vae, lstm, best_controller, solver, checkpoint = init_models(current_time)
+    vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1)
     print("Score: %d" % checkpoint['score'])
     game = games[0]
     level = levels[game][0]

@@ -1,41 +1,8 @@
 from const import *
 import pickle
 import torch
-from models.vae import ConvVAE
-from models.lstm import LSTM
-from models.controller import Controller
-from .controller_utils import CMAES
-from models.helper import load_model, save_checkpoint
 
 
-def init_models(current_time, load_vae=True, load_lstm=True, load_controller=True):
-    vae = lstm = best_controller = solver = None
-
-    if load_vae:
-        vae, _ = load_model(current_time, -1, model="vae")
-        if not vae:
-            vae = ConvVAE((HEIGHT, WIDTH, 3), LATENT_VEC).to(DEVICE)
-    
-    if load_lstm:
-        lstm, _ = load_model(current_time, -1, model="lstm")
-        if not lstm:
-            lstm = LSTM(HIDDEN_UNITS, LATENT_VEC,\
-                        NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
-    
-    if load_controller:
-        res = load_model(current_time, -1, model="controller")
-        checkpoint = res[0]
-        if len(res) > 2:
-            best_controller = res[1]
-            solver = res[2]
-            current_ctrl_version = checkpoint['version']
-        else:
-            best_controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
-            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 512,
-                        sigma_init=SIGMA_INIT,
-                        popsize=POPULATION)
-    
-    return vae, lstm, best_controller, solver, checkpoint
 
 def update_lr(lr, optimizer, total_ite, lr_decay=LR_DECAY, lr_decay_tick=LR_DECAY_TICK):
     """ Decay learning rate by a factor of lr_decay every lr_decay_ite iteration """
