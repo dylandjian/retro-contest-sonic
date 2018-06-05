@@ -63,7 +63,6 @@ class VAECGame(multiprocessing.Process):
                     actions = self.controller(torch.cat((z, 
                                 self.lstm.hidden[0].view(1, -1),
                                 self.lstm.hidden[1].view(1, -1)), dim=1))
-                    # actions = action.cpu().numpy()[0]
                     final_action = self._convert(actions.cpu())
                     obs, reward, done, info = env.step(final_action)
 
@@ -72,11 +71,6 @@ class VAECGame(multiprocessing.Process):
                                             .div(ACTION_SPACE_DISCRETE)
                     lstm_input = torch.cat((z, action.view(1, 1)), dim=1) 
                     res = self.lstm(lstm_input.view(1, 1, LATENT_VEC + 1))
-#                    if total_steps < 4:
-#                        print("id: %d\n" % self.process_id, self.lstm.hidden[0][0:10])
-#                        print(lstm_input[0][0:10])
-#                        print(res[0][0:10])
-#                        print()
 
                 ## Check for minimum reward duration the last buffer duration
                 if len(current_rewards) == REWARD_BUFFER:
@@ -90,6 +84,8 @@ class VAECGame(multiprocessing.Process):
 
                 ## Check for rendering
                 if (self.process_id + 1) % RENDER_TICK == 0:
+                    if total_steps % 200 == 0:
+                        print(actions)
                     env.render()
                 
                 ## Check for timelimit

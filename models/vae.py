@@ -82,7 +82,7 @@ class VAE(nn.Module):
         if training:
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std)
-            return eps.mul(std).add_(mu)
+            return eps* std + mu
         else:
             return mu
 

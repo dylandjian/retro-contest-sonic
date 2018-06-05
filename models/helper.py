@@ -25,7 +25,7 @@ def save_checkpoint(model, filename, state, current_time):
 def load_torch_models(path, model, filename):
     """ Load an already saved model """
 
-    checkpoint = torch.load(os.path.join(path, filename), map_location='cpu')
+    checkpoint = torch.load(os.path.join(path, filename))
     model.load_state_dict(checkpoint['model'])
     return checkpoint
 
@@ -134,7 +134,7 @@ def init_models(current_time, load_vae=False, load_lstm=False, load_controller=T
             current_ctrl_version = checkpoint['version']
         else:
             best_controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
-            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 512,
+            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 1024,
                         sigma_init=SIGMA_INIT,
                         popsize=POPULATION)
 

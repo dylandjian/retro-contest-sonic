@@ -95,7 +95,7 @@ def collate_fn(example):
         frames.extend(ex[0])
         actions.extend(ex[1])
 
-    frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
+    frames = torch.tensor(frames, dtype=torch.float, device=DEVICE) / 255
     actions = torch.tensor(actions, dtype=torch.float, device=DEVICE).div(ACTION_SPACE_DISCRETE)
     return frames, actions
 
