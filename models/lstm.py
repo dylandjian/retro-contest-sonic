@@ -24,11 +24,12 @@ class LSTM(nn.Module):
 
 
     def forward(self, x):
+        self.lstm.flatten_parameters()
+        sequence = x.size()[1]
+
         ## Hidden state
         x = F.relu(self.fc1(x))
-        self.lstm.flatten_parameters()
         z, self.hidden = self.lstm(x, self.hidden)
-        sequence = x.size()[1]
 
         pi = self.z_pi(z).view(-1, sequence, self.n_gaussians, self.z_dim)
         pi = F.softmax(pi, dim=2)

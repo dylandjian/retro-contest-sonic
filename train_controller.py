@@ -2,10 +2,10 @@ import click
 import pickle
 import os
 import numpy as np
-from const import *
-import torch.multiprocessing as multiprocessing
-from torch.multiprocessing import Queue
 import time
+import torch.multiprocessing as multiprocessing
+from const import *
+from torch.multiprocessing import Queue
 from models.helper import save_checkpoint, init_models
 from lib.agent_play import VAECGame
 from models.controller import Controller
@@ -113,7 +113,7 @@ def train_controller(current_time):
         print("[CONTROLLER] Total duration for generation: %.3f seconds, average duration:"
             " %.3f seconds per process, %.3f seconds per run" % ((np.sum(times), \
                     np.mean(times), np.mean(times) / REPEAT_ROLLOUT)))
-        print("[CONTROLLER] Creating generation: {} ...".format(current_solver_version + 1))
+        print("[CONTROLLER] Creating generation: {} ...".format(number_generations + 1))
         print("[CONTROLLER] Current best score: {}, new run best score: {}".format(current_best, current_score))
         print("[CONTROLLER] Best score ever: {}, current number of improvements: {}\n".format(current_best, current_ctrl_version))
         print("[CONTROLLER] Average score on all of the processes: {}".format(average_score))
@@ -142,6 +142,7 @@ def train_controller(current_time):
                         'saved_models', current_time, "{}-solver.pkl".format(current_solver_version))
             pickle.dump(solver, open(dir_path, 'wb'))
             current_solver_version += 1
+            level = np.random.choice(levels[game])
 
         number_generations += 1
 

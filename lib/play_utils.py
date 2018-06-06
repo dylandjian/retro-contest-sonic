@@ -44,11 +44,14 @@ class TrackedEnv(gym.Wrapper):
         return self.env.get_act(a)
 
 
+<<<<<<< HEAD
 #def _formate_img(img):
 #    img = cv2.resize(np.array(img), dsize=(WIDTH, HEIGHT),\
 #                    interpolation=cv2.INTER_NEAREST)
 #    return img.transpose((2, 0, 1))
 
+=======
+>>>>>>> 48407ad70b52071de6f86837f4de27fe79fd77d7
 def _formate_img(img):
     img = np.array(img) * 255
     img = Image.fromarray(np.uint8(img)).resize((WIDTH, HEIGHT))

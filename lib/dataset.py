@@ -20,7 +20,6 @@ class FrameDataset(Dataset):
         return len(self.frames)
 
     def __getitem__(self, idx):
-
         sample_idx = np.random.randint(0, PLAYOUTS - SAMPLE_SIZE)
         if self.lstm:
             return self.frames[idx][sample_idx:sample_idx + SAMPLE_SIZE], \
