@@ -1,0 +1,10 @@
+click==6.7
+cma==2.6.0
+gym==0.10.5
+gym-retro==0.5.4
+numpy==1.14.3
+Pillow==5.1.0
+pymongo==3.6.1
+-e git+https://github.com/openai/retro-contest.git@6467b948e78d99d62a73a1b3fe2ca002f737477b#egg=retro_contest_support&subdirectory=support
+torch==0.4.0
+torchvision==0.2.1
