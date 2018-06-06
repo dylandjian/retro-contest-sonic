@@ -10,7 +10,7 @@ Ongoing project.
 
 # CURRENTLY DOING
 
-* Submit learned agents
+* Submit learnt agents
 * Improving the controller training and model to get a decent transfer between levels
 
 # DONE
