@@ -4,7 +4,6 @@ import gridfs
 import time
 import torch
 import numpy as np
-import matplotlib.pyplot as plt
 from const import *
 from models.helper import load_model, save_checkpoint
 from pymongo import MongoClient

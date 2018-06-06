@@ -2,10 +2,10 @@ import click
 import pickle
 import os
 import numpy as np
-from const import *
-import torch.multiprocessing as multiprocessing
-from torch.multiprocessing import Queue
 import time
+import torch.multiprocessing as multiprocessing
+from const import *
+from torch.multiprocessing import Queue
 from models.helper import save_checkpoint, init_models
 from lib.agent_play import VAECGame
 from models.controller import Controller
