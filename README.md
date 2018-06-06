@@ -37,7 +37,7 @@ Ongoing project.
 
 * [My write-up on the code and concepts of this repository](https://dylandjian.github.io/world-models/)
 * [World Models paper](https://arxiv.org/pdf/1803.10122.pdf)
-* Coded on Ubuntu 16.04, Python 3.5, PyTorch 0.4 with GPUs (some change have to be made in order to make it fully compatible to CPU as well, such as adding a map_location when loading the model)
+* Coded on Ubuntu 16.04, Python 3.5, PyTorch 0.4 with GPUs (some change have to be made in order to make it fully compatible to CPU as well, such as adding a map_location="cpu" when loading the model)
 
 
 # Differences with the official paper
