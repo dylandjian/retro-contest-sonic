@@ -4,34 +4,20 @@ import torch
 import matplotlib.pyplot as plt
 
 
-def create_shading(vae, version, sample=None):
-    if not sample:
-        sample = torch.full((LATENT_VEC,), 0).to(DEVICE)
-    else:
-        img = torch.tensor([sample[0]], dtype=torch.float, device=DEVICE).div(255)
-        with torch.no_grad():
-            mu, _ = vae.encode(img)
-    imgs = []
-    for i in range(LATENT_VEC):
-        new_sample = mu.clone()
-        for j in range(5):
-            new_sample[0][i] += (1 - new_sample[0][i]) * 0.2
-            with torch.no_grad():
-                final_sample = vae.decode(new_sample).cpu().numpy()[0].transpose(1, 2, 0)
-            plt.imshow(final_sample, interpolation='nearest')
-            plt.show()
-            imgs.append(final_sample[0])
-        new_sample = mu.clone()
-        for j in range(5):
-            new_sample[0][i] -= (1 - new_sample[0][i]) * 0.2
-            with torch.no_grad():
-                final_sample = vae.decode(new_sample).cpu().numpy()[0].transpose(1, 2, 0)
-            plt.imshow(final_sample, interpolation='nearest')
-            plt.show()
-            imgs.append(final_sample[0])
-    save_image(imgs,
-        'results/vae/sample_{}.png'.format(version))
-
+def traverse_latent_space(vae, origin_frame, final_frame, total_ite):
+    with torch.no_grad():
+        origin_frame = origin_frame.view(-1, 3, WIDTH, HEIGHT)
+        final_frame = final_frame.view(-1, 3, WIDTH, HEIGHT) 
+        res = final_frame
+        origin_z = vae(origin_frame, encode=True)
+        final_z = vae(final_frame, encode=True)
+        for i in range(0, 50):
+            i /= 50
+            translat_img = (i * origin_z) + (1 - i) * final_z
+            res = torch.cat((res, vae.decode(translat_img)))
+            
+    res = torch.cat((res, origin_frame))
+    save_image(res, 'results/vae/sample_traverse_{}.png'.format(total_ite))
 
 def create_traverse_latent(vae, version):
     imgs = []

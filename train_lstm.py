@@ -7,7 +7,7 @@ import click
 from const import *
 from models.helper import load_model, save_checkpoint
 from pymongo import MongoClient
-from lib.dataset import FrameDataset
+from lib.dataset import LSTMDataset
 from torch.utils.data import DataLoader
 from models.helper import init_models
 from torch.distributions import Normal
@@ -100,7 +100,7 @@ def collate_fn(example):
 
 
 def train_lstm(current_time):
-    dataset = FrameDataset(lstm=True)
+    dataset = LSTMDataset()
     client = MongoClient()
     db = client.retro_contest
     collection = db[current_time]

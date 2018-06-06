@@ -11,7 +11,6 @@ from lib.agent_play import VAECGame
 from models.controller import Controller
 
 
-
 def compute_ranks(x):
   """
   Returns ranks in [0, len(x))
@@ -22,6 +21,7 @@ def compute_ranks(x):
   ranks = np.empty(len(x), dtype=int)
   ranks[x.argsort()] = np.arange(len(x))
   return ranks
+
 
 def rankmin(x):
   """

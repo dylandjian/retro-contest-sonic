@@ -43,12 +43,15 @@ def get_version(folder_path, file_version, model):
             file_version = all_version[-1]
         else:
             return False
+
     if model != "solver":
         test_file = "{}-{}.pth.tar".format(file_version, model)
     else:
         test_file = "{}-{}.pkl".format(file_version, model)
+
     if not os.path.isfile(os.path.join(folder_path, test_file)):
         return False
+
     return file_version
 
 
@@ -73,6 +76,7 @@ def load_model(folder, version, model="vae", sequence=SEQUENCE):
         solver_version = get_version(folder_path, version, "solver")
     else:
         solver_version = None
+
     if not last_version:
         return False, False
 

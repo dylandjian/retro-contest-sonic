@@ -9,8 +9,8 @@ from models.helper import load_model, save_checkpoint
 from pymongo import MongoClient
 from models.vae import VAE, ConvVAE
 from torch.utils.data import DataLoader
-from lib.dataset import FrameDataset
-from lib.visu import create_img, create_img_recons
+from lib.dataset import VAEDataset
+from lib.visu import create_img, create_img_recons, traverse_latent_space
 from torchvision.utils import save_image
 from lib.train_utils import create_optimizer, fetch_new_run, create_state
 
@@ -40,7 +40,7 @@ def train_epoch(vae, optimizer, frames):
 
 
 def train_vae(current_time):
-    dataset = FrameDataset()
+    dataset = VAEDataset()
     last_id = 0
     lr = LR
     version = 1
@@ -70,12 +70,12 @@ def train_vae(current_time):
         time.sleep(5)
     
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
-
     while True:
         batch_loss = []
-        for batch_idx, (frames) in enumerate(dataloader):
+        for batch_idx, frames in enumerate(dataloader):
+            frames = torch.tensor(frames, dtype=torch.float, device=DEVICE) / 255
+            frames = frames.view(-1, 3, WIDTH, HEIGHT)
             running_loss = []
-            # lr, optimizer = update_lr(lr, optimizer, total_ite)
 
             ## Save the models
             if total_ite % SAVE_TICK == 0:
@@ -84,10 +84,10 @@ def train_vae(current_time):
                 save_checkpoint(vae, "vae", state, current_time)
             
             if total_ite % SAVE_PIC_TICK == 0:
-                create_img_recons(vae, encoded_frames, version)
-    
-            encoded_frames = torch.tensor(frames, dtype=torch.float, device=DEVICE).div(255)
-            loss = train_epoch(vae, optimizer, encoded_frames)
+                traverse_latent_space(vae, frames[0], frames[-1], total_ite)
+                create_img_recons(vae, frames[0:40], total_ite)
+
+            loss = train_epoch(vae, optimizer, frames)
             running_loss.append(loss)
 
             ## Print running loss
@@ -110,7 +110,6 @@ def train_vae(current_time):
         if len(batch_loss) > 0:
             print("[TRAIN] Average backward pass loss : %.3f, current lr: %f" % (np.mean(batch_loss), lr))
     
-
 
 @click.command()
 @click.option("--folder", default=-1)
