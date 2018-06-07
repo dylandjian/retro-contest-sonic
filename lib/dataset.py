@@ -39,12 +39,11 @@ class LSTMDataset(Dataset):
         """ Instanciate a dataset extending PyTorch """
 
         self.repeat = repeat
-
         self.frames = []
         self.actions = []
 
     def __len__(self):
-        return len(self.frames) * PLAYOUTS
+        return len(self.frames)
 
     def __getitem__(self, idx):
         sample_idx = np.random.randint(0, PLAYOUTS - SAMPLE_SIZE)

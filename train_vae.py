@@ -5,13 +5,13 @@ import time
 import torch
 import numpy as np
 from const import *
-from models.helper import load_model, save_checkpoint
 from pymongo import MongoClient
-from models.vae import VAE, ConvVAE
 from torch.utils.data import DataLoader
-from lib.dataset import VAEDataset
-from lib.visu import create_img, create_img_recons, traverse_latent_space
 from torchvision.utils import save_image
+from models.vae import VAE, ConvVAE
+from models.helper import load_model, save_checkpoint
+from lib.dataset import VAEDataset
+from lib.visu import create_img_recons, traverse_latent_space
 from lib.train_utils import create_optimizer, fetch_new_run, create_state
 
 
@@ -48,6 +48,11 @@ def train_epoch(vae, optimizer, frames):
 
 
 def train_vae(current_time):
+    """
+    Train a VAE to create a latent representation of the Sonic levels by
+    trying to encode and decode each frame.
+    """
+
     dataset = VAEDataset()
     last_id = 0
     lr = LR
@@ -78,13 +83,14 @@ def train_vae(current_time):
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
         time.sleep(5)
     
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE_VAE, shuffle=True)
     while True:
         batch_loss = []
+        running_loss = []
+
         for batch_idx, frames in enumerate(dataloader):
             frames = torch.tensor(frames, dtype=torch.float, device=DEVICE) / 255
             frames = frames.view(-1, 3, WIDTH, HEIGHT)
-            running_loss = []
 
             ## Save the models
             if total_ite % SAVE_TICK == 0:

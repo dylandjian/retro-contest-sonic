@@ -7,12 +7,13 @@ import click
 from const import *
 from models.helper import load_model, save_checkpoint
 from pymongo import MongoClient
-from lib.dataset import LSTMDataset
 from torch.utils.data import DataLoader
-from models.helper import init_models
 from torch.distributions import Normal
-from lib.train_utils import create_optimizer, fetch_new_run, create_state
 from torchvision.utils import save_image
+from models.helper import init_models
+from lib.dataset import LSTMDataset
+from lib.train_utils import create_optimizer, fetch_new_run, create_state
+from lib.visu import sample_long_term
 
 
 def mdn_loss_function(out_pi, out_sigma, out_mu, y):
@@ -39,7 +40,7 @@ def train_epoch(lstm, optimizer, example):
 
     ## Concatenate action to encoded vector
     x = torch.cat((example['encoded'],
-            example['actions'].view(-1, 1).div(ACTION_SPACE_DISCRETE)), dim=1)
+            example['actions'].view(-1, 1) / ACTION_SPACE_DISCRETE), dim=1)
     x = x.view(-1, SEQUENCE, LATENT_VEC + 1)
 
     ## Shift target encoded vector
@@ -55,37 +56,8 @@ def train_epoch(lstm, optimizer, example):
     return float(loss)
 
 
-def sample(seq, pi, mu, sigma):
-    sampled = torch.sum(pi * torch.normal(mu, sigma), dim=2)
-    return sampled.view(seq, LATENT_VEC)
-
-
-def sample_long_term(vae, lstm, frames, version, total_ite):
-    """ Given a frame, tries to predict the next 60 encoded vectors """
-
-    lstm.hidden = lstm.init_hidden(1)
-    with torch.no_grad():
-        for i in range(1, 60):
-            if i == 1:
-                frames_z = vae(frames.view(-1, 3, WIDTH, HEIGHT), encode=True)[0:4]
-                first_z = frames_z[0].view(1, LATENT_VEC)
-                new_state = torch.cat((first_z, torch.full((1, 1), 1, device=DEVICE) \
-                                .div(ACTION_SPACE)), dim=1)
-            else:
-                new_state = torch.cat((z, torch.full((1, 1), 1, device=DEVICE) \
-                                .div(ACTION_SPACE)), dim=1)
-            pi, sigma, mu = lstm(new_state.view(1, 1, LATENT_VEC + 1))
-            z = sample(1, pi, mu, sigma)
-            if i == 1:
-                res = torch.cat((frames[0:4], vae.decode(frames_z)\
-                            .view(-1, 3, WIDTH, HEIGHT)))
-            else:
-                res = torch.cat((res, vae.decode(z).view(-1, 3, WIDTH, HEIGHT)))
-        save_image(res, "results/lstm/test-{}-{}.png".format(version, total_ite))
-
-
 def collate_fn(example):
-    """ Custom way of collating example in dataloader """
+    """ Custom way of flattening examples in a batch """
 
     frames = []
     actions = []
@@ -95,11 +67,16 @@ def collate_fn(example):
         actions.extend(ex[1])
 
     frames = torch.tensor(frames, dtype=torch.float, device=DEVICE) / 255
-    actions = torch.tensor(actions, dtype=torch.float, device=DEVICE).div(ACTION_SPACE_DISCRETE)
+    actions = torch.tensor(actions, dtype=torch.float, device=DEVICE) / (ACTION_SPACE_DISCRETE)
     return frames, actions
 
 
 def train_lstm(current_time):
+    """
+    Train the LSTM to be able to predict the next latent vector z given the current vector z
+    and an action.
+    """
+
     dataset = LSTMDataset()
     client = MongoClient()
     db = client.retro_contest
@@ -111,6 +88,7 @@ def train_lstm(current_time):
     version = 1
     total_ite = 1
 
+    ## Load or create models
     vae, lstm, _, _, checkpoint = init_models(current_time, load_vae=True,
                 load_lstm=True, load_controller=False)
     if not checkpoint:
@@ -123,16 +101,17 @@ def train_lstm(current_time):
         lr = checkpoint['lr']
         version = checkpoint['version']
 
+    ## Fill the dataset (or wait for the database to be filled)
     while len(dataset) * PLAYOUTS < SIZE:
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
         time.sleep(5)
     
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn)
+    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE_LSTM, collate_fn=collate_fn)
     while True:
+        running_loss = []
         batch_loss = []
+
         for batch_idx, (frames, actions) in enumerate(dataloader):
-            running_loss = []
-            # lr, optimizer = update_lr(lr, optimizer, total_ite)
 
             ## Save the model
             if total_ite % SAVE_TICK == 0:
