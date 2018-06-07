@@ -88,11 +88,11 @@ class VAECGame(multiprocessing.Process):
                         print(actions)
                     env.render()
                 
-                ## Check for timelimit
+                ## Check for custom timelimit
                 if total_steps > self.max_timestep:
                     break
-                total_steps += 1
 
+                total_steps += 1
             final_reward.append(total_reward)
 
         final_time = timeit.default_timer() - start_time

@@ -1,15 +1,10 @@
 import torch
 import math
-import os
-import numpy
-import random
 
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 ##### CONFIG
 
 torch.set_printoptions(precision=10)
-
 ## CUDA variable from Torch
 CUDA = torch.cuda.is_available()
 #torch.backends.cudnn.deterministic = True

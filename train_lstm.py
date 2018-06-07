@@ -1,5 +1,4 @@
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
 import gridfs
 import time
 import torch
@@ -62,7 +61,7 @@ def sample(seq, pi, mu, sigma):
 
 
 def sample_long_term(vae, lstm, frames, version, total_ite):
-    """ Given a frame, tries to predict the next 100 encoded vectors """
+    """ Given a frame, tries to predict the next 60 encoded vectors """
 
     lstm.hidden = lstm.init_hidden(1)
     with torch.no_grad():

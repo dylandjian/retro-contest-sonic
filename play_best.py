@@ -13,7 +13,7 @@ from models.helper import init_models
 
 
 
-def test_controller(current_time):
+def test_best_controller(current_time):
     current_time = str(current_time)
     games = GAMES
     levels = LEVELS
@@ -38,7 +38,7 @@ def main(folder):
         current_time = int(time.time())
     else:
         current_time = folder
-    test_controller(current_time)
+    test_best_controller(current_time)
 
 
 if __name__ == "__main__":

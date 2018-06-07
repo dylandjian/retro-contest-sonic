@@ -47,8 +47,6 @@ class HumanGame(multiprocessing.Process):
     
 
     def run(self):
-        ## Init possible levels
-
         current_idx = 0
         total_frames = 0
         env = False

@@ -7,14 +7,13 @@ from retro_contest.local import make
 import retro
 
 
-
 def create_env(env_name, env_state, contest=False, human=False):
     if human:
         env = SonicDiscretizer(retro.make(env_name, env_state, scenario="contest", use_restricted_actions=retro.ACTIONS_FILTERED))
     elif not contest:
         env = SonicDiscretizer(make(env_name, env_state))
     else:
-        env = grc.RemoteEnv('tmp/sock')
+        env = SonicDiscretizer(grc.RemoteEnv('tmp/sock'))
     return env
 
 
@@ -37,7 +36,10 @@ class SonicDiscretizer(gym.ActionWrapper):
         self._actions.append(np.zeros((12,), dtype=np.bool))
         self.action_space = gym.spaces.Discrete(len(self._actions))
 
+
     def filter_act(self, a):
+        """ Removing weird combos of buttons / useless buttons """
+
         a[4] = False
         a[9] = False
         a[10] = False

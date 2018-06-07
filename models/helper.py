@@ -134,7 +134,7 @@ def init_models(current_time, load_vae=False, load_lstm=False, load_controller=T
             current_ctrl_version = checkpoint['version']
         else:
             best_controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
-            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 1024,
+            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 512,
                         sigma_init=SIGMA_INIT,
                         popsize=POPULATION)
 
