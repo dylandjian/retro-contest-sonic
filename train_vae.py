@@ -16,11 +16,17 @@ from lib.train_utils import create_optimizer, fetch_new_run, create_state
 
 
 def loss_fn(recon_x, x, mu, logvar):
+    """
+    Loss function of β-VAE, check https://arxiv.org/pdf/1804.03599.pdf
+    or  https://dylandjian.github.io/world-models/
+    """
+
     batch_size = x.size()[0]
     if VAE_LOSS == "bce":
         loss = F.binary_cross_entropy(recon_x, x, size_average=False)
     else:
         loss = F.mse_loss(recon_x, x, size_average=False)
+
     kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     loss /= batch_size
     kld /= batch_size
@@ -28,11 +34,13 @@ def loss_fn(recon_x, x, mu, logvar):
 
 
 def train_epoch(vae, optimizer, frames):
-    """ Used to train the 3 models over a single batch """
+    """ Train the VAE over a batch of example frames """
 
     optimizer.zero_grad()
+
     recon_x, mu, logvar = vae(frames)
     loss = loss_fn(recon_x, frames, mu, logvar)
+
     loss.backward()
     optimizer.step()
 
@@ -64,7 +72,8 @@ def train_vae(current_time):
         lr = checkpoint['lr']
         version = checkpoint['version']
         last_id = 0
-    
+
+    ## Fill the dataset (or wait for the database to be filled)
     while len(dataset) < SIZE:
         last_id = fetch_new_run(collection, fs, dataset, last_id, loaded_version=current_time)
         time.sleep(5)
