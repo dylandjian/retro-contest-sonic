@@ -37,7 +37,7 @@ class ConvVAE(nn.Module):
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        return eps.mul(std).add_(mu)
+        return eps * std + mu
 
 
     def decode(self, z):
@@ -50,7 +50,7 @@ class ConvVAE(nn.Module):
         return h
 
 
-    def forward(self, x, encode=False, mean=True):
+    def forward(self, x, encode=False, mean=False):
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
         if encode:
@@ -74,7 +74,7 @@ class VAE(nn.Module):
 
 
     def encode(self, x):
-        h = F.relu(self.fc1(x))
+        h = self.relu(self.fc1(x))
         return self.fc2(h), self.fc3(h)
 
 
@@ -88,7 +88,7 @@ class VAE(nn.Module):
 
 
     def decode(self, z):
-        hidden = F.relu(self.fc4(z))
+        hidden = self.relu(self.fc4(z))
         return F.sigmoid(self.fc5(hidden))
 
 

@@ -1,10 +1,18 @@
 import numpy as np
 import cma
+from PIL import Image
+from const import *
 
 
 def compute_weight_decay(weight_decay, model_param_list):
   model_param_grid = np.array(model_param_list)
   return - weight_decay * np.mean(model_param_grid * model_param_grid, axis=1)
+
+
+def _formate_img(img):
+    img = np.array(img) * 255
+    img = Image.fromarray(np.uint8(img)).resize((WIDTH, HEIGHT))
+    return np.array(img).transpose((2, 0, 1))
 
 
 class CMAES:
