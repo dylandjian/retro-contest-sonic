@@ -84,14 +84,14 @@ class VAECGame(multiprocessing.Process):
                     current_rewards.pop()
                 else:
                     current_rewards.append(reward)
-                total_reward += reward
 
                 ## Check for rendering for debug / fun
                 if (self.process_id + 1) % RENDER_TICK == 0:
                     env.render()
+
+                total_reward += reward
                 total_steps += 1
 
-                total_steps += 1
             final_reward.append(total_reward)
 
         final_time = timeit.default_timer() - start_time
