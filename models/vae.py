@@ -17,7 +17,6 @@ class ConvVAE(nn.Module):
         self.fc1 = nn.Linear(256 * 6 * 6, z_dim)
         self.fc2 = nn.Linear(256 * 6 * 6, z_dim)
         self.fc3 = nn.Linear(z_dim, 256 * 6 * 6)
-        self.relu = nn.LeakyReLU(0.1)
 
         self.deconv1 = nn.ConvTranspose2d(256 * 6 * 6, 128, 5, stride=2)
         self.deconv2 = nn.ConvTranspose2d(128, 64, 5, stride=2)
@@ -27,10 +26,10 @@ class ConvVAE(nn.Module):
 
 
     def encode(self, x):
-        h = self.relu(self.conv1(x))
-        h = self.relu(self.conv2(h))
-        h = self.relu(self.conv3(h))
-        h = self.relu(self.conv4(h))
+        h = F.relu(self.conv1(x))
+        h = F.relu(self.conv2(h))
+        h = F.relu(self.conv3(h))
+        h = F.relu(self.conv4(h))
         h = h.view(-1, 256 * 6 * 6)
         return self.fc1(h), self.fc2(h)
 
@@ -43,10 +42,10 @@ class ConvVAE(nn.Module):
 
     def decode(self, z):
         h = self.fc3(z).view(-1, 256 * 6 * 6, 1, 1)
-        h = self.relu(self.deconv1(h))
-        h = self.relu(self.deconv2(h))
-        h = self.relu(self.deconv3(h))
-        h = self.relu(self.deconv4(h))
+        h = F.relu(self.deconv1(h))
+        h = F.relu(self.deconv2(h))
+        h = F.relu(self.deconv3(h))
+        h = F.relu(self.deconv4(h))
         h = F.sigmoid(self.deconv5(h))
         return h
 

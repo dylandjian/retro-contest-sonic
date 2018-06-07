@@ -1,6 +1,6 @@
 import click
 from const import *
-from lib.play_utils import JerkGame, HumanGame
+from lib.human import HumanGame
 import multiprocessing
 import time
 

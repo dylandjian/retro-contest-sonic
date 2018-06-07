@@ -1,4 +1,4 @@
-from .play_utils import _formate_img
+from .controller_utils import _formate_img
 from .env import create_env
 import pickle
 import multiprocessing
