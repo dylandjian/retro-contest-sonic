@@ -10,8 +10,8 @@ Ongoing project.
 
 # CURRENTLY DOING
 
-* Submit learnt agents
-* Improving the controller training and model to get a decent transfer between levels
+
+
 
 # DONE
 
@@ -23,12 +23,14 @@ Ongoing project.
 * MongoDB to store data
 * LSTM and VAE trained "successfully"
 * Multiprocessing of the evaluation of a set of parameters given by the CMA-ES
+* Submit learnt agents
 
 
 # LONG TERM PLAN ?
 
 * Cleaner code, more optimized and documented
 * Game agnostic
+* Continue training / testing better architectures
 * Online training instead of using a database
 
 
