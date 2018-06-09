@@ -22,11 +22,10 @@ def mdn_loss_function(out_pi, out_sigma, out_mu, y):
     https://mikedusenberry.com/mixture-density-networks
     """
 
-    result = Normal(loc=out_mu, scale=out_sigma)
     y = y.view(-1, SEQUENCE, 1, LATENT_VEC)
-    result = torch.exp(result.log_prob(y))
-    result = torch.sum(result * out_pi, dim=2)
-    result = -torch.log(EPSILON + result)
+    result = Normal(loc=out_mu, scale=out_sigma)
+    result = result.log_prob(y)
+    result = -torch.logsumexp(result + out_pi, dim=2)
     return torch.mean(result)
 
 

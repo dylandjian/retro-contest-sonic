@@ -17,18 +17,25 @@ def test_best_controller(current_time):
     current_time = str(current_time)
     games = GAMES
     levels = LEVELS
+    total = 0
+    total_re = 0
     result_queue = Queue()
 
     vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1, load_vae=True, load_lstm=True, load_controller=True)
     print("Score: %d" % checkpoint['score'])
-    game = games[0]
-    level = levels[game][1]
-    print("[CONTROLLER] Current level is: %s" % level)
-    new_game = VAECGame(current_time, 0, vae, lstm, best_controller, \
-            game, level, result_queue, MAX_TIMESTEPS)
-    new_game.start()
-    new_game.join()
+    for game in games:
+        for level in levels[game]:
+            print("[CONTROLLER] Current level is: %s" % level)
+            new_game = VAECGame(0, vae, lstm, best_controller, game, level, result_queue)
+            new_game.start()
+            new_game.join()
+            num_levels += 1
 
+    for _ in range(total):
+        result = result_queue.get()
+        final_reward = list(result.values())[0][0]
+        total_reward += final_reward
+    print("average reward: %f, number of levels: %d" % ((total_reward / total), total))
         
 @click.command()
 @click.option("--folder", default=-1)

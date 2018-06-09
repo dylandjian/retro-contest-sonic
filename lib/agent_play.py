@@ -53,7 +53,6 @@ class VAECGame(multiprocessing.Process):
 
             while not done:
                 with torch.no_grad():
-
                     ## Reset the hidden state once we have seen SEQUENCE number of frames
                     if total_steps % SEQUENCE == 0:
                         self.lstm.hidden = self.lstm.init_hidden(1)
@@ -86,12 +85,10 @@ class VAECGame(multiprocessing.Process):
                     current_rewards.append(reward)
 
                 ## Check for rendering for debug / fun
-                if (self.process_id + 1) % RENDER_TICK == 0:
-                    env.render()
-
+                # if (self.process_id + 1) % RENDER_TICK == 0:
+                # env.render()
                 total_reward += reward
                 total_steps += 1
-
             final_reward.append(total_reward)
 
         final_time = timeit.default_timer() - start_time

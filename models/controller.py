@@ -9,8 +9,8 @@ class Controller(nn.Module):
         super(Controller, self).__init__()
 
         self.action_space = action_space
-        self.fc1 = nn.Linear(hidden_dim + hidden_units, 512)
-        self.fc2 = nn.Linear(512, action_space)
+        self.fc1 = nn.Linear(hidden_dim + hidden_units, 1024)
+        self.fc2 = nn.Linear(1024, action_space)
         
     def forward(self, x):
         x = F.relu(self.fc1(x))

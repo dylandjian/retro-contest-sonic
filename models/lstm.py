@@ -33,11 +33,11 @@ class LSTM(nn.Module):
 
         pi = self.z_pi(z).view(-1, sequence, self.n_gaussians, self.z_dim)
         pi = F.softmax(pi, dim=2)
-        pi = pi / TEMPERATURE
+        # pi = pi / TEMPERATURE
 
         sigma = torch.exp(self.z_sigma(z)).view(-1, sequence,
                         self.n_gaussians, self.z_dim)
-        sigma = sigma * (TEMPERATURE ** 0.5)
+        # sigma = sigma * (TEMPERATURE ** 0.5)
         mu = self.z_mu(z).view(-1, sequence, self.n_gaussians, self.z_dim)
     
         return pi, sigma, mu
