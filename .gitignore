@@ -3,4 +3,4 @@ replay/
 results/
 data/
 add_index.py
-saved_models/backup
+saved_models/

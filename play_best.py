@@ -20,12 +20,11 @@ def test_best_controller(current_time):
     result_queue = Queue()
 
     vae, lstm, best_controller, solver, checkpoint = init_models(current_time, sequence=1, load_vae=True, load_lstm=True, load_controller=True)
-    print("Score: %d" % checkpoint['score'])
     game = games[0]
     level = levels[game][1]
     print("[CONTROLLER] Current level is: %s" % level)
-    new_game = VAECGame(current_time, 0, vae, lstm, best_controller, \
-            game, level, result_queue, MAX_TIMESTEPS)
+    new_game = VAECGame(0, vae, lstm, best_controller, \
+            game, level, result_queue)
     new_game.start()
     new_game.join()
 

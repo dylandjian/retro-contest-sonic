@@ -33,16 +33,19 @@ Ongoing project.
 
 # How to launch the scripts
 
-- Install the modules in the requirements.txt.    
-- Buy/Find the ROMs of Sonic The Hedgehog and install them with retro-gym.
+- Install the modules in the requirements.txt, pytorch 0.4 and mongoDB   
+- Buy or find the ROMs of Sonic The Hedgehog and install them with retro-gym.
 
-The github repo contains a trained VAE & LSTM and a *really* bad controller that has been trained for 30 minutes.
-Once you've done that, you can either retrain the controller (or the VAE / LSTM, just replace train_controller by train_xxx in the following command) from scratch by deleting the controller and the solver saved parameters in the folder saved_models/1527608256, or play a random level with the current saved models using this command   
+Once you've done that, you will need to train the 3 components :   
+`python train_vae.py`   
+`python train_lstm.py --folder=xxx`   
+`python train_controller.py --folder=xxx`  where xxx is the folder number created in saved_models/   
    
-`python play_best.py --folder=1527608256`   
-or if you want the controller model :
-`python train_controller.py --folder=1527608256`
-
+While training the VAE and the LSTM, pictures will be saved in a folder results/   
+    
+Once you're done, you can use your best trained controller to play a random level using :
+`python play_best --folder=xxx`   
+Dont forget to change the RENDER_TICK in const.py to 1, so you can see what's happening.
 
 # Resources
 
