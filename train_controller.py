@@ -36,13 +36,9 @@ def rankmin(x):
 def init_controller(controller, solution):
     """ Change the weights of the controller by the one proposed by the CMA """
 
-    new_w1 = torch.tensor(solution[0:PARAMS_FC1 + LATENT_VEC],\
-                                dtype=torch.double, device=DEVICE)
-    new_w2 = torch.tensor(solution[PARAMS_FC1 + LATENT_VEC:],\
-                                dtype=torch.double, device=DEVICE)
+    new_w1 = torch.tensor(solution, dtype=torch.double, device=DEVICE)
     params = controller.state_dict() 
-    params['fc1.weight'].data.copy_(new_w1)
-    params['fc2.weight'].data.copy_(new_w2)
+    params['fc1.weight'].data.copy_(new_w1.view(-1, PARAMS_CONTROLLER))
     return
 
 
@@ -109,7 +105,7 @@ def train_controller(current_time):
                 process_id = eval_left + job
 
                 ## Assign new weights to the controller, given by the CMA
-                controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
+                controller = Controller(PARAMS_CONTROLLER, ACTION_SPACE).to(DEVICE)
                 init_controller(controller, solutions[process_id])
 
                 ## Start the evaluation

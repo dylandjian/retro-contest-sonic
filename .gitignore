@@ -1,6 +1,6 @@
 __pycache__
 replay/
-saved_models
 results/
 data/
 add_index.py
+saved_models/backup

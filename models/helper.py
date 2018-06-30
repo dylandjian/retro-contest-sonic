@@ -104,7 +104,7 @@ def get_player(current_time, version, file_model, solver_version=None, sequence=
         model = LSTM(sequence, HIDDEN_UNITS, LATENT_VEC,\
                      NUM_LAYERS, GAUSSIANS, HIDDEN_DIM).to(DEVICE)
     elif file_model == "controller":
-        model = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
+        model = Controller(PARAMS_CONTROLLER, ACTION_SPACE).to(DEVICE)
 
     checkpoint = load_torch_models(path, model, models[0])
     if file_model == "controller":
@@ -137,8 +137,8 @@ def init_models(current_time, load_vae=False, load_lstm=False, load_controller=T
             solver = res[2]
             current_ctrl_version = checkpoint['version']
         else:
-            best_controller = Controller(LATENT_VEC, PARAMS_FC1, ACTION_SPACE).to(DEVICE)
-            solver = CMAES(PARAMS_FC1 + LATENT_VEC + 512,
+            best_controller = Controller(PARAMS_CONTROLLER, ACTION_SPACE).to(DEVICE)
+            solver = CMAES(PARAMS_CONTROLLER * ACTION_SPACE,
                         sigma_init=SIGMA_INIT,
                         popsize=POPULATION)
 

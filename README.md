@@ -11,8 +11,6 @@ Ongoing project.
 # CURRENTLY DOING
 
 
-
-
 # DONE
 
 * β-VAE for the Visual model
@@ -32,6 +30,18 @@ Ongoing project.
 * Game agnostic
 * Continue training / testing better architectures
 * Online training instead of using a database
+
+# How to launch the scripts
+
+- Install the modules in the requirements.txt.    
+- Buy/Find the ROMs of Sonic The Hedgehog and install them with retro-gym.
+
+The github repo contains a trained VAE & LSTM and a *really* bad controller that has been trained for 30 minutes.
+Once you've done that, you can either retrain the controller (or the VAE / LSTM, just replace train_controller by train_xxx in the following command) from scratch by deleting the controller and the solver saved parameters in the folder saved_models/1527608256, or play a random level with the current saved models using this command   
+   
+`python play_best.py --folder=1527608256`   
+or if you want the controller model :
+`python train_controller.py --folder=1527608256`
 
 
 # Resources
